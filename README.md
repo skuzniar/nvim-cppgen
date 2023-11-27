@@ -1,2 +1,2 @@
 # nvim-cppgen
-Neovim C++ code generator
+Neovim C++ code generator. Work in progress.
