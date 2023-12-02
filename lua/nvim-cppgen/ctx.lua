@@ -10,7 +10,7 @@ local ctx = {}
 
 --- Callback invoked when the LSP client has been attache to the buffer
 function M.attached(client, bufnr)
-    log.info("attached: " .. tostring(client.id) .. ":" .. tostring(bufnr))
+    --log.info("attached: " .. tostring(client.id) .. ":" .. tostring(bufnr))
 end
 
 --- Callback invoked when we enter insert mode in the buffer attached to an LSP client

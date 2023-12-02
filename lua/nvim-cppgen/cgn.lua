@@ -10,7 +10,7 @@ local M = {}
 
 --- Callback invoked when the LSP client has been attache to the buffer
 function M.attached(client, bufnr)
-    log.info("attached: " .. tostring(client.id) .. ":" .. tostring(bufnr))
+    --log.info("attached: " .. tostring(client.id) .. ":" .. tostring(bufnr))
 	ast.attached(client, bufnr)
 	ctx.attached(client, bufnr)
 end

@@ -10,13 +10,14 @@ local ast = {}
 
 --- LSP server request callback
 local function lsp_callback(bufnr, symbols)
+    --log.info(symbols)
 	ast[bufnr] = symbols
     log.info("lsp callback - AST array has " .. #ast .. " entries")
 end
 
 --- Return node details - name and range, adjusted for line numbers starting from one.
 function M.details(node)
-    return (node.detail or "<???>") .. '[' .. node.range['start'].line + 1 .. ',' .. node.range['end'].line + 1 .. ']'
+    return node.kind .. ' ' .. (node.detail or "<???>") .. '[' .. node.range['start'].line + 1 .. ',' .. node.range['end'].line + 1 .. ']'
 end
 
 --- Return node name.
@@ -39,22 +40,35 @@ function M.dfs(node, filt, pref, posf)
     end
 end
 
---- Returns true if the cursor position is within node's range
+--- Returns true if the cursor position is within the node's range
 local function encloses(node, cursor)
     local line = cursor[1] - 1
     return node.range and node.range['start'].line <= line and node.range['end'].line >= line
 end
 
---- Given cursor position find smallest enclosing AST record entity.
-function M.enclosing_node(bufnr, cursor)
+--- Returns true if the cursor position is past the node's range
+local function precedes(node, cursor)
+    local line = cursor[1] - 1
+    return node.range and node.range['end'].line < line
+end
+
+--- Given the cursor position, find smallest enclosing or closest preceding AST node
+function M.relevant_node(bufnr, cursor)
     local result = nil
     if ast[bufnr] ~= nil then
         M.dfs(ast[bufnr],
             function(node)
-                return node.kind == "TranslationUnit" or node.kind == "CXXRecord"
+                return node.kind == "TranslationUnit" or node.kind == "CXXRecord" or node.kind == "Enum"
             end,
             function(node)
                 if encloses(node, cursor) then
+                    --log.info('Found enclosing node ' .. M.name(node))
+                    result = node
+                end
+            end,
+            function(node)
+                if precedes(node, cursor) and not (result and encloses(result, cursor)) then
+                    --log.info('Found preceding node ' .. M.name(node))
                     result = node
                 end
             end
@@ -81,13 +95,17 @@ local function request_ast(client, bufnr)
 	awaiting[bufnr] = true
 
 	local cur = vim.api.nvim_win_get_cursor(0)
-    local rng = {['start'] = {line = cur[1]}, ['end'] = {line = cur[1] + 1}}
+    --log.info(cur)
+    local rng = {['start'] = {line = cur[1], character = cur[2]}, ['end'] = {line = cur[1], character = cur[2]}}
 
-	client.request("textDocument/ast", { textDocument = vim.lsp.util.make_text_document_params(), rng}, function(err, symbols, _)
+    log.info(rng)
+
+    -- TODO - debug range parameter
+	client.request("textDocument/ast", { textDocument = vim.lsp.util.make_text_document_params(), xrange = rng}, function(err, symbols, _)
 	    awaiting[bufnr] = false
 		if vim.api.nvim_buf_is_valid(bufnr) then
 		    if err ~= nil then
-                log.error("request_ast: Callback error " .. vim.pretty_print(err))
+                log.error(err)
             else
 				lsp_callback(bufnr, symbols or {})
 			end
@@ -95,8 +113,6 @@ local function request_ast(client, bufnr)
 	end , bufnr)
     return true
 end
-
-
 
 --- Check if AST is present for a given buffer
 local function has_ast(bufnr)
@@ -114,7 +130,7 @@ end
 --- Code generation callbacks
 ---------------------------------------------------------------------------------------------------
 function M.attached(client, bufnr)
-    log.info("attached: " .. tostring(client.id) .. ":" .. tostring(bufnr))
+    --log.info("attached: " .. tostring(client.id) .. ":" .. tostring(bufnr))
 
     --- Synchronous timed AST request with client captured
     M.request_ast = function(bufnr, timeout)
