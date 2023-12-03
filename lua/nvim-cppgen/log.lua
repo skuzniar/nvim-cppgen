@@ -47,7 +47,7 @@ log.new = function(config, standalone)
 
   local outfile = string.format('%s/%s.log', vim.api.nvim_call_function('stdpath', {'data'}), config.plugin)
 
-  print(outfile)
+  --print(outfile)
 
   local obj
   if standalone then
@@ -152,5 +152,9 @@ end
 
 log.new(default_config, true)
 -- }}}
+
+-- Adding few convenience functions
+log.squoted = function(arg) return "'" .. tostring(arg) .. "'" end
+log.dquoted = function(arg) return '"' .. tostring(arg) .. '"' end
 
 return log

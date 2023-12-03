@@ -61,7 +61,7 @@ end
 
 -- Generate friend output stream shift operator for a class type node.
 local function shift_class_impl(node)
-    log.info("shift_class_impl: " .. ast.details(node))
+    log.trace("shift_class_impl: " .. ast.details(node))
     P.cnt, P.len = maxlen(node)
     P.ind = 4
 
@@ -86,29 +86,28 @@ local function shift_class_impl(node)
     table.insert(lines, apply('<ind>return s;', node))
     table.insert(lines, apply('}', node))
 
-    for _,l in ipairs(lines) do log.info(l) end
+    for _,l in ipairs(lines) do log.debug(l) end
 
     return table.concat(lines,"\n")
 end
 
 -- Generate friend output stream shift operator for a class type node.
 local function friend_shift_class(node)
-    log.info("friend_shift_class: " .. ast.details(node))
+    log.trace("friend_shift_class:", ast.details(node))
     P.spc = 'friend'
     return shift_class_impl(node)
 end
 
 -- Generate global output stream shift operator for a class type node.
 local function global_shift_class(node)
-    log.info("global_shift_class: " .. ast.details(node))
+    log.trace("global_shift_class:", ast.details(node))
     P.spc = 'inline'
     return shift_class_impl(node)
 end
 
 -- Generate global output stream shift operator for an enum type node.
 local function global_shift_enum(node)
-    log.info("global_shift_enum: " .. ast.details(node))
-    log.info(node)
+    log.trace("global_shift_enum:", ast.details(node))
     P.cnt, P.len = maxlen(node)
     P.spc = ''
     P.ind = 4
@@ -126,7 +125,6 @@ local function global_shift_enum(node)
             return n.kind == "EnumConstant"
         end,
         function(n)
-            log.info(ast.details(n))
             if n ~= node then
                 table.insert(lines, apply('<ind><ind>case ' .. ast.name(node) .. [[::<nam>:<pad> s << "<nam>";<pad> break;]], n))
             end
@@ -139,17 +137,17 @@ local function global_shift_enum(node)
     table.insert(lines, apply('<ind>return s;', node))
     table.insert(lines, apply('}', node))
 
-    for _,l in ipairs(lines) do log.info(l) end
+    for _,l in ipairs(lines) do log.debug(l) end
 
     return table.concat(lines,"\n")
 end
 
 -- Generate plain output stream shift operator for a class type node.
 local function shift_class(node, cursor)
-    log.info("shift_class: " .. ast.details(node))
+    log.trace("shift_class:", ast.details(node))
 
     if encloses(node, cursor) then
-        log.info("shift_class: generation code for enclosing node")
+        log.debug("shift_class: generation code for enclosing node")
         return
         {
             label            = 'friend',
@@ -159,7 +157,7 @@ local function shift_class(node, cursor)
             insertText       = friend_shift_class(node)
         }
     elseif precedes(node, cursor) then
-        log.info("shift_class: generation code for preceding node")
+        log.debug("shift_class: generation code for preceding node")
         return
         {
             label            = 'inline',
@@ -173,10 +171,10 @@ end
 
 -- Generate plain output stream shift operator for a class type node.
 local function shift_enum(node, cursor)
-    log.info("shift_enum: " .. ast.details(node))
+    log.trace("shift_enum:", ast.details(node))
 
     if precedes(node, cursor) then
-        log.info("shift_enum: generation code for preceding node")
+        log.debug("shift_enum: generation code for preceding node")
         return
         {
             label            = 'inline',
@@ -190,7 +188,7 @@ end
 
 -- Generate plain output stream shift operator for a class type node.
 function M.completion_items(node, cursor)
-    log.info("snippet: " .. ast.details(node))
+    log.trace("completion_items:", ast.details(node))
 
     if node.kind == "CXXRecord" then
         return shift_class(node, cursor)

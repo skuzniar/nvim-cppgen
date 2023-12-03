@@ -10,9 +10,8 @@ local ast = {}
 
 --- LSP server request callback
 local function lsp_callback(bufnr, symbols)
-    --log.info(symbols)
+    log.info("lsp_callback: Received AST data with", (symbols and symbols.children and #symbols.children or 0), "top level nodes")
 	ast[bufnr] = symbols
-    log.info("lsp callback - AST array has " .. #ast .. " entries")
 end
 
 --- Return node details - name and range, adjusted for line numbers starting from one.
@@ -40,39 +39,62 @@ function M.dfs(node, filt, pref, posf)
     end
 end
 
---- Returns true if the cursor position is within the node's range
-local function encloses(node, cursor)
-    local line = cursor[1] - 1
+--- Returns true if the cursor line position is within the node's range
+local function encloses(node, line)
+    log.trace("encloses")
     return node.range and node.range['start'].line <= line and node.range['end'].line >= line
 end
 
---- Returns true if the cursor position is past the node's range
-local function precedes(node, cursor)
-    local line = cursor[1] - 1
+--- Returns true if the cursor line position is past the node's range
+local function precedes(node, line)
+    log.trace("precedes")
     return node.range and node.range['end'].line < line
 end
 
+--- Returns true if the cursor line position is before the node's range
+local function follows(node, line)
+    log.trace("follows")
+    return node.range and node.range['start'].line > line
+end
+
+--- Relevant node for the current buffer
+local relnode = {}
+
 --- Given the cursor position, find smallest enclosing or closest preceding AST node
 function M.relevant_node(bufnr, cursor)
+    log.debug("relevant_node: Looking for relevant node in buffer", bufnr)
+    if relnode[bufnr] then
+        log.debug("relevant_node: Found relevant node in the cache", M.details(relnode[bufnr]))
+        return relnode[bufnr]
+    end
+
+    local line = cursor[1] - 1
+
     local result = nil
     if ast[bufnr] ~= nil then
         M.dfs(ast[bufnr],
             function(node)
-                return node.kind == "TranslationUnit" or node.kind == "CXXRecord" or node.kind == "Enum"
+                log.debug('relevant_node: Looking at node', M.details(node))
+                return not follows(node, line) and (node.kind == "TranslationUnit" or node.kind == "CXXRecord" or node.kind == "Enum")
             end,
             function(node)
-                if encloses(node, cursor) then
-                    --log.info('Found enclosing node ' .. M.name(node))
+                if encloses(node, line) then
+                    log.debug('relevant_node: Found enclosing node ' .. M.name(node))
                     result = node
                 end
             end,
             function(node)
-                if precedes(node, cursor) and not (result and encloses(result, cursor)) then
-                    --log.info('Found preceding node ' .. M.name(node))
+                if precedes(node, line) and not (result and encloses(result, line)) then
+                    log.debug('relevant_node: Found preceding node ' .. M.name(node))
                     result = node
                 end
             end
         )
+    end
+
+    if result then
+        log.debug("relevant_node: Found relevant node", M.details(result))
+        relnode[bufnr] = result
     end
     return result
 end
@@ -83,23 +105,21 @@ local awaiting = {}
 --- Asynchronous AST request
 local function request_ast(client, bufnr)
 	if not vim.api.nvim_buf_is_loaded(bufnr) then
-        log.info("request_ast: Buffer not loaded " .. bufnr)
+        log.debug("request_ast: Buffer not loaded " .. bufnr)
 		return false
 	end
 	if awaiting[bufnr] then
-        log.info("request_ast: Awaiting response for buffer " .. bufnr)
+        log.debug("request_ast: Awaiting response for buffer " .. bufnr)
 		return false
 	end
 
-    log.info("request_ast: Requesting symbols")
 	awaiting[bufnr] = true
 
 	local cur = vim.api.nvim_win_get_cursor(0)
-    --log.info(cur)
     local rng = {['start'] = {line = cur[1], character = cur[2]}, ['end'] = {line = cur[1], character = cur[2]}}
+    log.debug("request_ast: cursor=", cur, " range=", rng)
 
-    log.info(rng)
-
+    log.info("request_ast: Requesting AST data")
     -- TODO - debug range parameter
 	client.request("textDocument/ast", { textDocument = vim.lsp.util.make_text_document_params(), xrange = rng}, function(err, symbols, _)
 	    awaiting[bufnr] = false
@@ -116,13 +136,13 @@ end
 
 --- Check if AST is present for a given buffer
 local function has_ast(bufnr)
-    --log.info("has_ast " .. bufnr)
+    log.trace("has_ast: bufnr=", bufnr)
     return ast[bufnr] ~= nil
 end
 
 --- Clear AST for a given buffer
 local function clear_ast(bufnr)
-    log.info("clear_ast " .. bufnr)
+    log.trace("clear_ast: bufnr=", bufnr)
     ast[bufnr] = nil
 end
 
@@ -130,28 +150,30 @@ end
 --- Code generation callbacks
 ---------------------------------------------------------------------------------------------------
 function M.attached(client, bufnr)
-    --log.info("attached: " .. tostring(client.id) .. ":" .. tostring(bufnr))
+    log.trace("attached:", client.id, ':', bufnr)
 
     --- Synchronous timed AST request with client captured
     M.request_ast = function(bufnr, timeout)
-        log.info("request_ast: Making synchronous request for AST with timeout " .. tostring(timeout))
+        log.debug("request_ast: Making synchronous request for AST with timeout=", timeout)
         clear_ast(bufnr)
         if not request_ast(client, bufnr) then
             return false
         end
         vim.wait(timeout, function() return has_ast(bufnr) end)
-        log.info("request_ast: Returning " .. tostring(has_ast(bufnr)))
+        log.debug("request_ast: Returning success=", has_ast(bufnr))
         return has_ast(bufnr)
     end
 end
 
 function M.insert_enter(client, bufnr)
-    log.info("insert_enter: " .. tostring(client.id) .. ":" .. tostring(bufnr))
+    log.trace("insert_enter:", client.id, ':', bufnr)
+    relnode[bufnr] = nil
     request_ast(client, bufnr)
 end
 
 function M.insert_leave(client, bufnr)
-    log.info("insert_leave: " .. tostring(client.id) .. ":" .. tostring(bufnr))
+    relnode[bufnr] = nil
+    log.trace("insert_leave:", client.id, ':', bufnr)
 end
 
 return M

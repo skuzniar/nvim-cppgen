@@ -1,32 +1,6 @@
 local gen = require('nvim-cppgen.gen')
 local log = require('nvim-cppgen.log')
 
------
-local function tprint (tbl, indent)
-  if not indent then indent = 0 end
-  local toprint = string.rep(" ", indent) .. "{\r\n"
-  indent = indent + 2
-  for k, v in pairs(tbl) do
-    toprint = toprint .. string.rep(" ", indent)
-    if (type(k) == "number") then
-      toprint = toprint .. "[" .. k .. "] = "
-    elseif (type(k) == "string") then
-      toprint = toprint  .. k ..  "= "
-    end
-    if (type(v) == "number") then
-      toprint = toprint .. v .. ",\r\n"
-    elseif (type(v) == "string") then
-      toprint = toprint .. "\"" .. v .. "\",\r\n"
-    elseif (type(v) == "table") then
-      toprint = toprint .. tprint(v, indent + 2) .. ",\r\n"
-    else
-      toprint = toprint .. "\"" .. tostring(v) .. "\",\r\n"
-    end
-  end
-  toprint = toprint .. string.rep(" ", indent-2) .. "}"
-  return toprint
-end
-
 ---------------------------------------------------------------------------------------------------
 -- Code completion source module. Implements code completion source interface.
 ---------------------------------------------------------------------------------------------------
@@ -35,20 +9,20 @@ local M = {}
 
 --- Return new source
 M.new = function()
-    log.info('new')
+    log.trace('new')
     return setmetatable({}, { __index = M })
 end
 
 --- Return whether this source is available in the current context or not (optional).
 function M:is_available()
-    --log.info('is_available')
+    log.trace('is_available')
     return vim.bo.filetype == "cpp" and gen.can_generate(vim.api.nvim_get_current_buf())
 end
 
 --- Return the debug name of this source (optional).
 --[[
 function M:get_debug_name()
-    log.info('source.get_debug_name')
+    log.trace('get_debug_name')
     return 'c++gen'
 end
 ]]
@@ -56,7 +30,7 @@ end
 --- Return LSP's PositionEncodingKind (optional).
 --[[
 function M:get_position_encoding_kind()
-    log.info('source.get_position_encoding_kind')
+    log.trace('get_position_encoding_kind')
   return 'utf-16'
 end
 ]]
@@ -64,7 +38,7 @@ end
 --- Return the keyword pattern for triggering completion (optional).
 --[[
 function M:get_keyword_pattern()
-    log.info('get_keyword_pattern')
+    log.trace('get_keyword_pattern')
     return 'friend'
 end
 ]]
@@ -72,15 +46,14 @@ end
 --- Return trigger characters for triggering completion (optional).
 --[[
 function M:get_trigger_characters()
-    log.info('source.get_trigger_characters')
+    log.trace('get_trigger_characters')
     return { '.' }
 end
 ]]
 
 --- Invoke completion (required).
 function M:complete(params, callback)
-    log.info('complete')
-    log.info(tprint(params.context or {}))
+    log.debug('complete: Context', params.context)
     local items = gen.generate(params.context.bufnr, params.context.cursor)
     if items then
         callback(items)
@@ -90,7 +63,7 @@ end
 --- Resolve completion item (optional). This is called right before the completion is about to be displayed.
 --[[
 function M:resolve(completion_item, callback)
-    log.info('resolve')
+    log.trace('resolve')
     callback(completion_item)
 end
 ]]
@@ -98,7 +71,7 @@ end
 --- Executed after the item was selected.
 --[[
 function M:execute(completion_item, callback)
-    log.info('execute')
+    log.trace('execute')
     callback(completion_item)
 end
 ]]
