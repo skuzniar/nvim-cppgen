@@ -27,10 +27,10 @@ local function maxlen(node)
 
     ast.dfs(node,
         function(n)
-            return n.kind == "EnumConstant" or n.kind == "Field"
+            return true
         end,
         function(n)
-            if n ~= node then
+            if n.kind == "EnumConstant" or n.kind == "Field" then
                 cnt = cnt + 1
                 len = math.max(len, string.len(ast.name(n)))
             end
@@ -73,10 +73,10 @@ local function shift_class_impl(node)
 
     ast.dfs(node,
         function(n)
-            return n.kind == "Field"
+            return true
         end,
         function(n)
-            if n ~= node then
+            if n.kind == "Field" then
                 table.insert(lines, apply([[<ind>s << "<nam>:"<pad> << ' ' << o.<nam><pad> << ' ';]], n))
             end
         end
@@ -122,10 +122,10 @@ local function global_shift_enum(node)
 
     ast.dfs(node,
         function(n)
-            return n.kind == "EnumConstant"
+            return true
         end,
         function(n)
-            if n ~= node then
+            if n.kind == "EnumConstant" then
                 table.insert(lines, apply('<ind><ind>case ' .. ast.name(node) .. [[::<nam>:<pad> s << "<nam>";<pad> break;]], n))
             end
         end

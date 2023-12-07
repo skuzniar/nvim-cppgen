@@ -7,7 +7,7 @@ local cppgen = 'cppgen'
 
 --- LSP attach callback
 local function attach(client, bufnr)
-    log.info("attach: Client", log.squoted(client.name), "has been attached to buffer", log.squoted(vim.api.nvim_buf_get_name(bufnr)))
+    log.info("Client", log.squoted(client.name), "attached to", log.squoted(vim.api.nvim_buf_get_name(bufnr)))
 
     -- Inform code generator that LPS client has been attached to the buffer
 	cgn.attached(client, bufnr)
@@ -34,6 +34,9 @@ local function attach(client, bufnr)
 		buffer = bufnr
 	})
 
+    -- Add our source to cmp
+    log.info("Adding completion source", log.squoted(cppgen))
+    require('cmp').register_source(cppgen, cgn.source())
 end
 
 --- Setup
@@ -59,10 +62,6 @@ function M.setup(opts)
 			end
 		end,
 	})
-
-    -- Add our source to cmp
-    log.info("setup: Adding completion source", log.squoted(cppgen))
-    require('cmp').register_source(cppgen, cgn.source())
 end
 
 return M

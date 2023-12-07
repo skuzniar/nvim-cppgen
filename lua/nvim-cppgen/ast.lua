@@ -10,13 +10,18 @@ local ast = {}
 
 --- LSP server request callback
 local function lsp_callback(bufnr, symbols)
-    log.info("lsp_callback: Received AST data with", (symbols and symbols.children and #symbols.children or 0), "top level nodes")
+    log.info("Received AST data with", (symbols and symbols.children and #symbols.children or 0), "top level nodes")
+    log.trace(symbols)
 	ast[bufnr] = symbols
 end
 
 --- Return node details - name and range, adjusted for line numbers starting from one.
 function M.details(node)
-    return node.kind .. ' ' .. (node.detail or "<???>") .. '[' .. node.range['start'].line + 1 .. ',' .. node.range['end'].line + 1 .. ']'
+    if node.range then
+        return node.role .. ' ' .. node.kind .. ' ' .. (node.detail or "<???>") .. '[' .. node.range['start'].line .. ',' .. node.range['end'].line .. ']'
+    else
+        return node.role .. ' ' .. node.kind .. ' ' .. (node.detail or "<???>") .. '[]'
+    end
 end
 
 --- Return node name.
@@ -26,76 +31,74 @@ end
 
 --- Depth first traversal over AST tree with filter, pre and post order operations.
 function M.dfs(node, filt, pref, posf)
-    pref(node)
-    if node.children then
-        for _, child in ipairs(node.children) do
-            if filt(child) then
+    if filt(node) then
+        pref(node)
+        if node.children then
+            for _, child in ipairs(node.children) do
 	            M.dfs(child, filt, pref, posf)
 		    end
-		end
-	end
-    if posf then
-        posf(node)
+	    end
+        if posf then
+            posf(node)
+        end
     end
 end
 
 --- Returns true if the cursor line position is within the node's range
 local function encloses(node, line)
-    log.trace("encloses")
-    return node.range and node.range['start'].line <= line and node.range['end'].line >= line
+    return node.range and node.range['start'].line < line and node.range['end'].line > line
 end
 
 --- Returns true if the cursor line position is past the node's range
 local function precedes(node, line)
-    log.trace("precedes")
     return node.range and node.range['end'].line < line
 end
 
 --- Returns true if the cursor line position is before the node's range
 local function follows(node, line)
-    log.trace("follows")
     return node.range and node.range['start'].line > line
 end
 
---- Relevant node for the current buffer
-local relnode = {}
+--- Relevant nodes cache for the current buffer
+local relnodes = {}
 
---- Given the cursor position, find smallest enclosing or closest preceding AST node
-function M.relevant_node(bufnr, cursor)
-    log.debug("relevant_node: Looking for relevant node in buffer", bufnr)
-    if relnode[bufnr] then
-        log.debug("relevant_node: Found relevant node in the cache", M.details(relnode[bufnr]))
-        return relnode[bufnr]
+--- Given the line cursor position, find smallest enclosing and closest preceding AST node
+function M.relevant_nodes(bufnr, line)
+    log.debug("Looking for relevant nodes in buffer", bufnr, "at line", line)
+    --[[
+    if relnodes[bufnr] then
+        log.debug("relevant_node: Found relevant node in the cache")
+        return relnodes[bufnr]
     end
+    --]]
 
-    local line = cursor[1] - 1
-
-    local result = nil
+    local result = {}
     if ast[bufnr] ~= nil then
         M.dfs(ast[bufnr],
             function(node)
-                log.debug('relevant_node: Looking at node', M.details(node))
-                return not follows(node, line) and (node.kind == "TranslationUnit" or node.kind == "CXXRecord" or node.kind == "Enum")
+                log.trace("Looking at node", M.details(node))
+                return true
             end,
             function(node)
                 if encloses(node, line) then
-                    log.debug('relevant_node: Found enclosing node ' .. M.name(node))
-                    result = node
+                    log.trace("Found enclosing node", M.details(node))
+                    result.enclosing = node
                 end
             end,
             function(node)
-                if precedes(node, line) and not (result and encloses(result, line)) then
-                    log.debug('relevant_node: Found preceding node ' .. M.name(node))
-                    result = node
+                if precedes(node, line) then
+                    log.trace("Found preceding node", M.details(node))
+                    result.preceding = node
                 end
             end
         )
     end
 
-    if result then
-        log.debug("relevant_node: Found relevant node", M.details(result))
-        relnode[bufnr] = result
-    end
+    relnodes[bufnr] = result
+
+    log.debug("Returning",
+        "preceding=", (result.preceding and M.details(result.preceding) or result.preceding),
+        "enclosing=", (result.enclosing and M.details(result.enclosing) or result.enclosing))
     return result
 end
 
@@ -105,11 +108,11 @@ local awaiting = {}
 --- Asynchronous AST request
 local function request_ast(client, bufnr)
 	if not vim.api.nvim_buf_is_loaded(bufnr) then
-        log.debug("request_ast: Buffer not loaded " .. bufnr)
+        log.debug("Buffer not loaded", bufnr)
 		return false
 	end
 	if awaiting[bufnr] then
-        log.debug("request_ast: Awaiting response for buffer " .. bufnr)
+        log.debug("Awaiting response for buffer", bufnr)
 		return false
 	end
 
@@ -117,9 +120,9 @@ local function request_ast(client, bufnr)
 
 	local cur = vim.api.nvim_win_get_cursor(0)
     local rng = {['start'] = {line = cur[1], character = cur[2]}, ['end'] = {line = cur[1], character = cur[2]}}
-    log.debug("request_ast: cursor=", cur, " range=", rng)
+    log.trace("request_ast: cursor=", cur, " range=", rng)
 
-    log.info("request_ast: Requesting AST data")
+    log.info("Requesting AST data for buffer", bufnr)
     -- TODO - debug range parameter
 	client.request("textDocument/ast", { textDocument = vim.lsp.util.make_text_document_params(), xrange = rng}, function(err, symbols, _)
 	    awaiting[bufnr] = false
@@ -142,7 +145,7 @@ end
 
 --- Clear AST for a given buffer
 local function clear_ast(bufnr)
-    log.trace("clear_ast: bufnr=", bufnr)
+    log.trace("clear_ast: bufnr =", bufnr)
     ast[bufnr] = nil
 end
 
@@ -150,30 +153,30 @@ end
 --- Code generation callbacks
 ---------------------------------------------------------------------------------------------------
 function M.attached(client, bufnr)
-    log.trace("attached:", client.id, ':', bufnr)
+    log.trace("Attached client", client.id, "buffer", bufnr)
 
     --- Synchronous timed AST request with client captured
     M.request_ast = function(bufnr, timeout)
-        log.debug("request_ast: Making synchronous request for AST with timeout=", timeout)
+        log.debug("Making synchronous request for AST with timeout =", timeout)
         clear_ast(bufnr)
         if not request_ast(client, bufnr) then
             return false
         end
         vim.wait(timeout, function() return has_ast(bufnr) end)
-        log.debug("request_ast: Returning success=", has_ast(bufnr))
+        log.debug("Returning from synchronous request with success =", has_ast(bufnr))
         return has_ast(bufnr)
     end
 end
 
 function M.insert_enter(client, bufnr)
-    log.trace("insert_enter:", client.id, ':', bufnr)
-    relnode[bufnr] = nil
+    log.trace("Entered insert mode in buffer", bufnr)
+    relnodes[bufnr] = nil
     request_ast(client, bufnr)
 end
 
 function M.insert_leave(client, bufnr)
-    relnode[bufnr] = nil
-    log.trace("insert_leave:", client.id, ':', bufnr)
+    log.trace("Exited insert mode in buffer", bufnr)
+    relnodes[bufnr] = nil
 end
 
 return M

@@ -16,7 +16,7 @@ end
 --- Return whether this source is available in the current context or not (optional).
 function M:is_available()
     log.trace('is_available')
-    return vim.bo.filetype == "cpp" and gen.can_generate(vim.api.nvim_get_current_buf())
+    return gen.can_generate(vim.api.nvim_get_current_buf())
 end
 
 --- Return the debug name of this source (optional).
@@ -53,7 +53,7 @@ end
 
 --- Invoke completion (required).
 function M:complete(params, callback)
-    log.debug('complete: Context', params.context)
+    log.trace('complete: Context', params.context)
     local items = gen.generate(params.context.bufnr, params.context.cursor)
     if items then
         callback(items)
