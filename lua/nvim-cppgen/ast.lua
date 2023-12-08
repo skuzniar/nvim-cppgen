@@ -8,11 +8,15 @@ local M = {}
 --- AST object returned by LSP server for each buffer
 local ast = {}
 
+--- Relevant nodes cache for the current buffer
+local relnodes = {}
+
 --- LSP server request callback
 local function lsp_callback(bufnr, symbols)
     log.info("Received AST data with", (symbols and symbols.children and #symbols.children or 0), "top level nodes")
     log.trace(symbols)
 	ast[bufnr] = symbols
+    relnodes[bufnr] = nil
 end
 
 --- Return node details - name and range, adjusted for line numbers starting from one.
@@ -59,18 +63,14 @@ local function follows(node, line)
     return node.range and node.range['start'].line > line
 end
 
---- Relevant nodes cache for the current buffer
-local relnodes = {}
-
 --- Given the line cursor position, find smallest enclosing and closest preceding AST node
 function M.relevant_nodes(bufnr, line)
-    log.debug("Looking for relevant nodes in buffer", bufnr, "at line", line)
-    --[[
     if relnodes[bufnr] then
-        log.debug("relevant_node: Found relevant node in the cache")
+        log.debug("Found cached nodes in buffer", bufnr, "at line", line)
         return relnodes[bufnr]
     end
-    --]]
+
+    log.debug("Looking for relevant nodes in buffer", bufnr, "at line", line)
 
     local result = {}
     if ast[bufnr] ~= nil then
@@ -97,8 +97,8 @@ function M.relevant_nodes(bufnr, line)
     relnodes[bufnr] = result
 
     log.debug("Returning",
-        "preceding=", (result.preceding and M.details(result.preceding) or result.preceding),
-        "enclosing=", (result.enclosing and M.details(result.enclosing) or result.enclosing))
+        "preceding =", (result.preceding and M.details(result.preceding) or result.preceding),
+        "enclosing =", (result.enclosing and M.details(result.enclosing) or result.enclosing))
     return result
 end
 
@@ -176,7 +176,6 @@ end
 
 function M.insert_leave(client, bufnr)
     log.trace("Exited insert mode in buffer", bufnr)
-    relnodes[bufnr] = nil
 end
 
 return M

@@ -8,16 +8,28 @@ local cmp = require('cmp')
 ---------------------------------------------------------------------------------------------------
 local M = {}
 
+--- Returns true if the node is of interest to us
+function M.interesting(node, enclosing)
+    -- We can generate shift operator for preceding enumeration node
+    if not enclosing and node.role == "declaration" and node.kind == "Enum" then
+        return true
+    end
+    -- We can generate shift operator for both preceding and enclosing class nodes
+    if node.role == "declaration" and node.kind == "CXXRecord" then
+        return true
+    end
+
+    return false
+end
+
 --- Returns true if the cursor position is within the node's range
 local function encloses(node, cursor)
-    local line = cursor.line - 1
-    return node.range and node.range['start'].line <= line and node.range['end'].line >= line
+    return node.range and node.range['start'].line < cursor.line and node.range['end'].line > cursor.line
 end
 
 --- Returns true if the cursor position is past the node's range
 local function precedes(node, cursor)
-    local line = cursor.line - 1
-    return node.range and node.range['end'].line < line
+    return node.range and node.range['end'].line < cursor.line
 end
 
 -- Calculate the number of children and the longest length of the childe's name
