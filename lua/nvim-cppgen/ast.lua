@@ -14,7 +14,7 @@ local relnodes = {}
 --- LSP server request callback
 local function lsp_callback(bufnr, symbols)
     log.info("Received AST data with", (symbols and symbols.children and #symbols.children or 0), "top level nodes")
-    log.trace(symbols)
+    log.debug(symbols)
 	ast[bufnr] = symbols
     relnodes[bufnr] = nil
 end
@@ -154,18 +154,6 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.attached(client, bufnr)
     log.trace("Attached client", client.id, "buffer", bufnr)
-
-    --- Synchronous timed AST request with client captured
-    M.request_ast = function(bufnr, timeout)
-        log.debug("Making synchronous request for AST with timeout =", timeout)
-        clear_ast(bufnr)
-        if not request_ast(client, bufnr) then
-            return false
-        end
-        vim.wait(timeout, function() return has_ast(bufnr) end)
-        log.debug("Returning from synchronous request with success =", has_ast(bufnr))
-        return has_ast(bufnr)
-    end
 end
 
 function M.insert_enter(client, bufnr)

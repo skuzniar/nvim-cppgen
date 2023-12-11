@@ -51,6 +51,11 @@ local function maxlen(node)
     return cnt, len
 end
 
+--- Turn node name into a label
+function label(name)
+    return name
+end
+
 ---------------------------------------------------------------------------------------------------
 -- Parameters
 ---------------------------------------------------------------------------------------------------
@@ -59,6 +64,7 @@ local P = {}
 -- Apply node object to the format string 
 local function apply(format, node)
     local nam = ast.name(node)
+    local lab = label(ast.name(node))
     local ind = string.rep(' ', P.ind)
     local pad = string.rep(' ', P.len - string.len(nam))
     local spc = P.spc
@@ -66,6 +72,7 @@ local function apply(format, node)
 
     res = string.gsub(res, "<spc>", spc)
     res = string.gsub(res, "<nam>", nam)
+    res = string.gsub(res, "<lab>", lab)
     res = string.gsub(res, "<ind>", ind)
     res = string.gsub(res, "<pad>", pad)
     return res;
@@ -73,7 +80,7 @@ end
 
 -- Generate friend output stream shift operator for a class type node.
 local function shift_class_impl(node)
-    log.trace("shift_class_impl: " .. ast.details(node))
+    log.debug("shift_class_impl:", ast.details(node))
     P.cnt, P.len = maxlen(node)
     P.ind = 4
 
@@ -89,7 +96,7 @@ local function shift_class_impl(node)
         end,
         function(n)
             if n.kind == "Field" then
-                table.insert(lines, apply([[<ind>s << "<nam>:"<pad> << ' ' << o.<nam><pad> << ' ';]], n))
+                table.insert(lines, apply([[<ind>s << "<lab>:"<pad> << ' ' << o.<nam><pad> << ' ';]], n))
             end
         end
     )

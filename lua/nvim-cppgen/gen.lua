@@ -54,8 +54,7 @@ end
 
 --- Generate code completion itemss appropriate for the given context
 function M.generate(bufnr, cursor)
-    log.info("Refreshing AST data synchronously and trying to generate code at line", cursor.line)
-    ast.request_ast(bufnr, 1000)
+    log.info("Generating code at line", cursor.line)
 
     local node = select_node(ast.relevant_nodes(bufnr, cursor.line), cursor.line)
     if node then
