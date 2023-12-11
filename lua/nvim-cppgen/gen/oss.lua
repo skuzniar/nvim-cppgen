@@ -6,6 +6,26 @@ local cmp = require('cmp')
 ---------------------------------------------------------------------------------------------------
 -- Output stream shift operators.
 ---------------------------------------------------------------------------------------------------
+
+local function capitalize(s)
+    return (string.gsub(s, '^%l', string.upper))
+end
+
+local function camelize(s)
+    return (string.gsub(s, '%W*(%w+)', capitalize))
+end
+
+--- Turn the node name into a label
+local function label(name)
+    -- Remove one letter prefix
+    name = string.gsub(name, '^%a_', '')
+
+    -- Turn snake into camel
+    name = camelize(name)
+
+    return name
+end
+
 local M = {}
 
 --- Returns true if the node is of interest to us
@@ -32,10 +52,10 @@ local function precedes(node, cursor)
     return node.range and node.range['end'].line < cursor.line
 end
 
--- Calculate the number of children and the longest length of the childe's name
+-- Calculate the longest length of the childe's label and name
 local function maxlen(node)
-    local cnt = 0
-    local len = 0
+    local max_lab_len = 0
+    local max_nam_len = 0
 
     ast.dfs(node,
         function(n)
@@ -43,17 +63,13 @@ local function maxlen(node)
         end,
         function(n)
             if n.kind == "EnumConstant" or n.kind == "Field" then
-                cnt = cnt + 1
-                len = math.max(len, string.len(ast.name(n)))
+                max_lab_len = math.max(max_lab_len, string.len(label(ast.name(n))))
+                max_nam_len = math.max(max_nam_len, string.len(ast.name(n)))
             end
         end
     )
-    return cnt, len
-end
-
---- Turn node name into a label
-function label(name)
-    return name
+    log.debug("Max label length =", max_lab_len, "max name length =", max_nam_len)
+    return max_lab_len, max_nam_len
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -63,32 +79,35 @@ local P = {}
 
 -- Apply node object to the format string 
 local function apply(format, node)
-    local nam = ast.name(node)
-    local lab = label(ast.name(node))
-    local ind = string.rep(' ', P.ind)
-    local pad = string.rep(' ', P.len - string.len(nam))
-    local spc = P.spc
-    local res = format
+    local name = ast.name(node)
+    local labl = label(ast.name(node))
+    local indt = string.rep(' ', P.indt)
+    local lpad = string.rep(' ', P.llen - string.len(labl))
+    local npad = string.rep(' ', P.nlen - string.len(name))
+    local spec = P.spec or ''
 
-    res = string.gsub(res, "<spc>", spc)
-    res = string.gsub(res, "<nam>", nam)
-    res = string.gsub(res, "<lab>", lab)
-    res = string.gsub(res, "<ind>", ind)
-    res = string.gsub(res, "<pad>", pad)
-    return res;
+    local result  = format
+
+    result = string.gsub(result, "<spec>", spec)
+    result = string.gsub(result, "<name>", name)
+    result = string.gsub(result, "<labl>", labl)
+    result = string.gsub(result, "<indt>", indt)
+    result = string.gsub(result, "<lpad>", lpad)
+    result = string.gsub(result, "<npad>", npad)
+    return result;
 end
 
 -- Generate friend output stream shift operator for a class type node.
 local function shift_class_impl(node)
     log.debug("shift_class_impl:", ast.details(node))
-    P.cnt, P.len = maxlen(node)
-    P.ind = 4
+    P.llen, P.nlen = maxlen(node)
+    P.indt = 4
 
     local lines = {}
 
-    table.insert(lines, apply('<spc> std::ostream& operator<<(std::ostream& s, const <nam>& o)', node))
+    table.insert(lines, apply('<spec> std::ostream& operator<<(std::ostream& s, const <name>& o)', node))
     table.insert(lines, apply('{', node))
-    table.insert(lines, apply('<ind>// clang-format off', node))
+    table.insert(lines, apply('<indt>// clang-format off', node))
 
     ast.dfs(node,
         function(n)
@@ -96,13 +115,13 @@ local function shift_class_impl(node)
         end,
         function(n)
             if n.kind == "Field" then
-                table.insert(lines, apply([[<ind>s << "<lab>:"<pad> << ' ' << o.<nam><pad> << ' ';]], n))
+                table.insert(lines, apply([[<indt>s << "<labl>:"<lpad> << ' ' << o.<name><npad> << ' ';]], n))
             end
         end
     )
 
-    table.insert(lines, apply('<ind>// clang-format on', node))
-    table.insert(lines, apply('<ind>return s;', node))
+    table.insert(lines, apply('<indt>// clang-format on', node))
+    table.insert(lines, apply('<indt>return s;', node))
     table.insert(lines, apply('}', node))
 
     for _,l in ipairs(lines) do log.debug(l) end
@@ -113,31 +132,30 @@ end
 -- Generate friend output stream shift operator for a class type node.
 local function friend_shift_class(node)
     log.trace("friend_shift_class:", ast.details(node))
-    P.spc = 'friend'
+    P.spec = 'friend'
     return shift_class_impl(node)
 end
 
 -- Generate global output stream shift operator for a class type node.
 local function global_shift_class(node)
     log.trace("global_shift_class:", ast.details(node))
-    P.spc = 'inline'
+    P.spec = 'inline'
     return shift_class_impl(node)
 end
 
 -- Generate global output stream shift operator for an enum type node.
 local function global_shift_enum(node)
     log.trace("global_shift_enum:", ast.details(node))
-    P.cnt, P.len = maxlen(node)
-    P.spc = ''
-    P.ind = 4
+    P.llen, P.nlen = maxlen(node)
+    P.indt = 4
 
     local lines = {}
 
-    table.insert(lines, apply('inline std::ostream& operator<<(std::ostream& s, <nam> o)', node))
+    table.insert(lines, apply('inline std::ostream& operator<<(std::ostream& s, <name> o)', node))
     table.insert(lines, apply('{', node))
-    table.insert(lines, apply('<ind>switch(o)', node))
-    table.insert(lines, apply('<ind>{', node))
-    table.insert(lines, apply('<ind><ind>// clang-format off', node))
+    table.insert(lines, apply('<indt>switch(o)', node))
+    table.insert(lines, apply('<indt>{', node))
+    table.insert(lines, apply('<indt><indt>// clang-format off', node))
 
     ast.dfs(node,
         function(n)
@@ -145,15 +163,15 @@ local function global_shift_enum(node)
         end,
         function(n)
             if n.kind == "EnumConstant" then
-                table.insert(lines, apply('<ind><ind>case ' .. ast.name(node) .. [[::<nam>:<pad> s << "<nam>";<pad> break;]], n))
+                table.insert(lines, apply('<indt><indt>case ' .. ast.name(node) .. [[::<name>:<npad> s << "<name>";<npad> break;]], n))
             end
         end
     )
 
-    table.insert(lines, apply('<ind><ind>// clang-format on', node))
-    table.insert(lines, apply('<ind>};', node))
+    table.insert(lines, apply('<indt><indt>// clang-format on', node))
+    table.insert(lines, apply('<indt>};', node))
 
-    table.insert(lines, apply('<ind>return s;', node))
+    table.insert(lines, apply('<indt>return s;', node))
     table.insert(lines, apply('}', node))
 
     for _,l in ipairs(lines) do log.debug(l) end
