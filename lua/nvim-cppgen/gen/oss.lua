@@ -68,7 +68,6 @@ local function maxlen(node)
             end
         end
     )
-    log.debug("Max label length =", max_lab_len, "max name length =", max_nam_len)
     return max_lab_len, max_nam_len
 end
 

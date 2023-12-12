@@ -14,7 +14,7 @@ local relnodes = {}
 --- LSP server request callback
 local function lsp_callback(bufnr, symbols)
     log.info("Received AST data with", (symbols and symbols.children and #symbols.children or 0), "top level nodes")
-    log.debug(symbols)
+    log.trace(symbols)
 	ast[bufnr] = symbols
     relnodes[bufnr] = nil
 end
@@ -118,13 +118,10 @@ local function request_ast(client, bufnr)
 
 	awaiting[bufnr] = true
 
-	local cur = vim.api.nvim_win_get_cursor(0)
-    local rng = {['start'] = {line = cur[1], character = cur[2]}, ['end'] = {line = cur[1], character = cur[2]}}
-    log.trace("request_ast: cursor=", cur, " range=", rng)
-
     log.info("Requesting AST data for buffer", bufnr)
     -- TODO - debug range parameter
-	client.request("textDocument/ast", { textDocument = vim.lsp.util.make_text_document_params(), xrange = rng}, function(err, symbols, _)
+	--client.request("textDocument/ast", { textDocument = vim.lsp.util.make_text_document_params(), xrange = rng}, function(err, symbols, _)
+	client.request("textDocument/ast", { textDocument = vim.lsp.util.make_text_document_params()}, function(err, symbols, _)
 	    awaiting[bufnr] = false
 		if vim.api.nvim_buf_is_valid(bufnr) then
 		    if err ~= nil then
