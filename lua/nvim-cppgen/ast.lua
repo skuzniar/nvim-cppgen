@@ -22,9 +22,11 @@ end
 --- Return node details - name and range, adjusted for line numbers starting from one.
 function M.details(node)
     if node.range then
-        return node.role .. ' ' .. node.kind .. ' ' .. (node.detail or "<???>") .. '[' .. node.range['start'].line .. ',' .. node.range['end'].line .. ']'
+        --return node.role .. ' ' .. node.kind .. ' ' .. (node.detail or "<???>") .. '[' .. node.range['start'].line .. ',' .. node.range['end'].line .. ']'
+        return node.kind .. ' ' .. (node.detail or "<???>") .. '[' .. node.range['start'].line .. ',' .. node.range['end'].line .. ']'
     else
-        return node.role .. ' ' .. node.kind .. ' ' .. (node.detail or "<???>") .. '[]'
+        --return node.role .. ' ' .. node.kind .. ' ' .. (node.detail or "<???>") .. '[]'
+        return node.kind .. ' ' .. (node.detail or "<???>") .. '[]'
     end
 end
 
@@ -66,7 +68,6 @@ end
 --- Given the line cursor position, find smallest enclosing and closest preceding AST node
 function M.relevant_nodes(bufnr, line)
     if relnodes[bufnr] then
-        log.debug("Found cached nodes in buffer", bufnr, "at line", line)
         return relnodes[bufnr]
     end
 
@@ -96,9 +97,8 @@ function M.relevant_nodes(bufnr, line)
 
     relnodes[bufnr] = result
 
-    log.debug("Returning",
-        "preceding =", (result.preceding and M.details(result.preceding) or result.preceding),
-        "enclosing =", (result.enclosing and M.details(result.enclosing) or result.enclosing))
+    log.debug("Preceding =", (result.preceding and M.details(result.preceding) or result.preceding),
+              "Enclosing =", (result.enclosing and M.details(result.enclosing) or result.enclosing))
     return result
 end
 
