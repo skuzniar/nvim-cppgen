@@ -1,4 +1,5 @@
 local cgn = require("nvim-cppgen.cgn")
+local cfg = require("nvim-cppgen.cfg")
 local log = require('nvim-cppgen.log')
 
 local M = {}
@@ -41,12 +42,16 @@ end
 
 --- Setup
 function M.setup(opts)
-    -- Parse options
+    -- Pass the options to the configuration module
+    cfg.options = opts
+
+    -- We configure log module ourselves
 	if opts ~= nil then
 	    if opts.log then
             log.new(opts.log, true)
 	    end
 	end
+
     log.trace("setup:", opts)
 
 	vim.api.nvim_create_autocmd("LspAttach", {

@@ -1,4 +1,5 @@
 local ast = require('nvim-cppgen.ast')
+local cfg = require('nvim-cppgen.cfg')
 local log = require('nvim-cppgen.log')
 
 local cmp = require('cmp')
@@ -6,6 +7,9 @@ local cmp = require('cmp')
 ---------------------------------------------------------------------------------------------------
 -- Output stream shift operators.
 ---------------------------------------------------------------------------------------------------
+
+local do_droppfix = false
+local do_camelize = false
 
 local function capitalize(s)
     return (string.gsub(s, '^%l', string.upper))
@@ -15,31 +19,15 @@ local function camelize(s)
     return (string.gsub(s, '%W*(%w+)', capitalize))
 end
 
---- Turn the node name into a label
 local function label(name)
-    -- Remove one letter prefix
-    name = string.gsub(name, '^%a_', '')
-
-    -- Turn snake into camel
-    name = camelize(name)
+    if do_droppfix then
+        name = string.gsub(name, '^%a_', '')
+    end
+    if do_camelize then
+        name = camelize(name)
+    end
 
     return name
-end
-
-local M = {}
-
---- Returns true if the node is of interest to us
-function M.interesting(node, enclosing)
-    -- We can generate shift operator for preceding enumeration node
-    if not enclosing and node.role == "declaration" and node.kind == "Enum" then
-        return true
-    end
-    -- We can generate shift operator for both preceding and enclosing class nodes
-    if node.role == "declaration" and node.kind == "CXXRecord" then
-        return true
-    end
-
-    return false
 end
 
 --- Returns true if the cursor position is within the node's range
@@ -183,7 +171,7 @@ local function shift_class(node, cursor)
     log.trace("shift_class:", ast.details(node))
 
     if encloses(node, cursor) then
-        log.debug("shift_class: generation code for enclosing node")
+        log.debug("Generation code for enclosing node")
         return
         {
             label            = 'friend',
@@ -193,7 +181,7 @@ local function shift_class(node, cursor)
             insertText       = friend_shift_class(node)
         }
     elseif precedes(node, cursor) then
-        log.debug("shift_class: generation code for preceding node")
+        log.debug("Generation code for preceding node")
         return
         {
             label            = 'inline',
@@ -210,7 +198,7 @@ local function shift_enum(node, cursor)
     log.trace("shift_enum:", ast.details(node))
 
     if precedes(node, cursor) then
-        log.debug("shift_enum: generation code for preceding node")
+        log.debug("Generation code for preceding node")
         return
         {
             label            = 'inline',
@@ -222,9 +210,29 @@ local function shift_enum(node, cursor)
     end
 end
 
+local M = {}
+
+--- Returns true if the node is of interest to us
+function M.interesting(node, enclosing)
+    -- We can generate shift operator for preceding enumeration node
+    if not enclosing and node.role == "declaration" and node.kind == "Enum" then
+        return true
+    end
+    -- We can generate shift operator for both preceding and enclosing class nodes
+    if node.role == "declaration" and node.kind == "CXXRecord" then
+        return true
+    end
+
+    return false
+end
+
 -- Generate plain output stream shift operator for a class type node.
 function M.completion_items(node, cursor)
     log.trace("completion_items:", ast.details(node))
+
+    -- Set options
+    do_droppfix = cfg.options.oss and cfg.options.oss.drop_prefix
+    do_camelize = cfg.options.oss and cfg.options.oss.camelize
 
     if node.kind == "CXXRecord" then
         return shift_class(node, cursor)
