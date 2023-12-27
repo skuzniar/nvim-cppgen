@@ -50,6 +50,15 @@ function M.dfs(node, filt, pref, posf)
     end
 end
 
+--- Visit immediate children of a given node.
+function M.visit_children(node, visf)
+    if node.children then
+        for _, child in ipairs(node.children) do
+            visf(child)
+		end
+    end
+end
+
 --- Returns true if the cursor line position is within the node's range
 local function encloses(node, line)
     return node.range and node.range['start'].line < line and node.range['end'].line > line

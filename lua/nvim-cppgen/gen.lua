@@ -54,25 +54,28 @@ function M.can_generate(bufnr)
     return false
 end
 
---- Generate code completion itemss appropriate for the given context
-function M.generate(bufnr, cursor)
-    log.info("Generating code at line", cursor.line)
-
-    local node = select_node(ast.relevant_nodes(bufnr, cursor.line))
-    if node then
-        log.info("Found relevant node", ast.details(node))
-        -- Collect completion items from all registered code generators
-        local total = {}
-        for _, g in ipairs(G) do
-            local items = g.completion_items(node, cursor);
-            if items then
-                table.insert(total, items)
+--- Generate code completion items appropriate for the given context
+function M.generate(bufnr)
+	local cursor = ctx.context(bufnr)
+    if cursor then
+	    local line = cursor[1] - 1
+        log.info("Generating code in buffer", bufnr, "line", line)
+        local node = select_node(ast.relevant_nodes(bufnr, line))
+        if node then
+            log.info("Found relevant node", ast.details(node))
+            -- Collect completion items from all registered code generators
+            local total = {}
+            for _, g in ipairs(G) do
+                local items = g.completion_items(node, line);
+                if items then
+                    table.insert(total, items)
+                end
             end
+            log.info("Collected", #total, "completion items for node", ast.details(node))
+            return total
+        else
+            log.info("Did not find relevant node to generate code at line", line)
         end
-        log.info("Collected", #total, "completion items for node", ast.details(node))
-        return total
-    else
-        log.info("Did not find relevant node to generate code at line", cursor.line)
     end
 end
 

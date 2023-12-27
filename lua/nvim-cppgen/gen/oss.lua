@@ -30,14 +30,14 @@ local function label(name)
     return name
 end
 
---- Returns true if the cursor position is within the node's range
-local function encloses(node, cursor)
-    return node.range and node.range['start'].line < cursor.line and node.range['end'].line > cursor.line
+--- Returns true if the line is within the node's range
+local function encloses(node, line)
+    return node.range and node.range['start'].line < line and node.range['end'].line > line
 end
 
---- Returns true if the cursor position is past the node's range
-local function precedes(node, cursor)
-    return node.range and node.range['end'].line < cursor.line
+--- Returns true if the line is past the node's range
+local function precedes(node, line)
+    return node.range and node.range['end'].line < line
 end
 
 -- Calculate the longest length of the childe's label and name
@@ -45,10 +45,7 @@ local function maxlen(node)
     local max_lab_len = 0
     local max_nam_len = 0
 
-    ast.dfs(node,
-        function(n)
-            return true
-        end,
+    ast.visit_children(node,
         function(n)
             if n.kind == "EnumConstant" or n.kind == "Field" then
                 max_lab_len = math.max(max_lab_len, string.len(label(ast.name(n))))
@@ -96,10 +93,7 @@ local function shift_class_impl(node)
     table.insert(lines, apply('{', node))
     table.insert(lines, apply('<indt>// clang-format off', node))
 
-    ast.dfs(node,
-        function(n)
-            return true
-        end,
+    ast.visit_children(node,
         function(n)
             if n.kind == "Field" then
                 table.insert(lines, apply([[<indt>s << "<labl>:"<lpad> << ' ' << o.<name><npad> << ' ';]], n))
@@ -144,10 +138,7 @@ local function global_shift_enum(node)
     table.insert(lines, apply('<indt>{', node))
     table.insert(lines, apply('<indt><indt>// clang-format off', node))
 
-    ast.dfs(node,
-        function(n)
-            return true
-        end,
+    ast.visit_children(node,
         function(n)
             if n.kind == "EnumConstant" then
                 table.insert(lines, apply('<indt><indt>case ' .. ast.name(node) .. [[::<name>:<npad> s << "<name>";<npad> break;]], n))
@@ -167,10 +158,10 @@ local function global_shift_enum(node)
 end
 
 -- Generate plain output stream shift operator for a class type node.
-local function shift_class(node, cursor)
+local function shift_class(node, line)
     log.trace("shift_class:", ast.details(node))
 
-    if encloses(node, cursor) then
+    if encloses(node, line) then
         log.debug("Generation code for enclosing node")
         return
         {
@@ -180,7 +171,7 @@ local function shift_class(node, cursor)
             insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
             insertText       = friend_shift_class(node)
         }
-    elseif precedes(node, cursor) then
+    elseif precedes(node, line) then
         log.debug("Generation code for preceding node")
         return
         {
@@ -194,10 +185,10 @@ local function shift_class(node, cursor)
 end
 
 -- Generate plain output stream shift operator for a class type node.
-local function shift_enum(node, cursor)
+local function shift_enum(node, line)
     log.trace("shift_enum:", ast.details(node))
 
-    if precedes(node, cursor) then
+    if precedes(node, line) then
         log.debug("Generation code for preceding node")
         return
         {
@@ -227,7 +218,7 @@ function M.interesting(node, enclosing)
 end
 
 -- Generate plain output stream shift operator for a class type node.
-function M.completion_items(node, cursor)
+function M.completion_items(node, line)
     log.trace("completion_items:", ast.details(node))
 
     -- Set options
@@ -235,10 +226,10 @@ function M.completion_items(node, cursor)
     do_camelize = cfg.options.oss and cfg.options.oss.camelize
 
     if node.kind == "CXXRecord" then
-        return shift_class(node, cursor)
+        return shift_class(node, line)
     end
     if node.kind == "Enum" then
-        return shift_enum(node, cursor)
+        return shift_enum(node, line)
     end
 end
 
