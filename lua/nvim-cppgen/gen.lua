@@ -31,8 +31,8 @@ local function select_node(nodes)
     if nodes.enclosing and interesting(nodes.enclosing, true) then
         return nodes.enclosing
     end
-    -- We can also generate code if we have an interesting preceding node and we are not inside of a node
-    if not nodes.enclosing and nodes.preceding and interesting(nodes.preceding, false) then
+    -- We can also generate code if we have an interesting preceding node
+    if nodes.preceding and interesting(nodes.preceding, false) then
         return nodes.preceding
     end
     return nil
