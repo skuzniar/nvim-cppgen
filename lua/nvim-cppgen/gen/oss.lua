@@ -30,16 +30,6 @@ local function label(name)
     return name
 end
 
---- Returns true if the line is within the node's range
-local function encloses(node, line)
-    return node.range and node.range['start'].line < line and node.range['end'].line > line
-end
-
---- Returns true if the line is past the node's range
-local function precedes(node, line)
-    return node.range and node.range['end'].line < line
-end
-
 -- Calculate the longest length of the childe's label and name
 local function maxlen(node)
     local max_lab_len = 0
@@ -81,7 +71,7 @@ local function apply(format, node)
     return result;
 end
 
--- Generate friend output stream shift operator for a class type node.
+-- Generate output stream shift operator for a class type node.
 local function shift_class_impl(node)
     log.debug("shift_class_impl:", ast.details(node))
     P.llen, P.nlen = maxlen(node)
@@ -110,29 +100,55 @@ local function shift_class_impl(node)
     return table.concat(lines,"\n")
 end
 
--- Generate friend output stream shift operator for a class type node.
-local function friend_shift_class(node)
-    log.trace("friend_shift_class:", ast.details(node))
+-- Generate output stream friend shift operator snippet for a class type node.
+local function friend_shift_class_snippet(node)
+    log.trace("friend_shift_class_snippet:", ast.details(node))
     P.spec = 'friend'
     return shift_class_impl(node)
 end
 
--- Generate global output stream shift operator for a class type node.
-local function global_shift_class(node)
-    log.trace("global_shift_class:", ast.details(node))
+-- Generate output stream inline shift operator snippet for a class type node.
+local function inline_shift_class_snippet(node)
+    log.trace("inline_shift_class_snippet:", ast.details(node))
     P.spec = 'inline'
     return shift_class_impl(node)
 end
 
--- Generate global output stream shift operator for an enum type node.
-local function global_shift_enum(node)
-    log.trace("global_shift_enum:", ast.details(node))
+-- Generate output stream friend shift operator completion item for a class type node.
+local function friend_shift_class_item(node)
+    log.trace("friend_shift_class_item:", ast.details(node))
+    return
+    {
+        label            = 'friend',
+        kind             = cmp.lsp.CompletionItemKind.Snippet,
+        insertTextMode   = 2,
+        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+        insertText       = friend_shift_class_snippet(node)
+    }
+end
+
+-- Generate output stream inline shift operator completion item for a class type node.
+local function inline_shift_class_item(node)
+    log.trace("inline_shift_class_item:", ast.details(node))
+    return
+    {
+        label            = 'inline',
+        kind             = cmp.lsp.CompletionItemKind.Snippet,
+        insertTextMode   = 2,
+        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+        insertText       = inline_shift_class_snippet(node)
+    }
+end
+
+-- Generate output stream shift operator for an enum type node.
+local function shift_enum_impl(node)
+    log.trace("shift_enum_impl:", ast.details(node))
     P.llen, P.nlen = maxlen(node)
     P.indt = 4
 
     local lines = {}
 
-    table.insert(lines, apply('inline std::ostream& operator<<(std::ostream& s, <name> o)', node))
+    table.insert(lines, apply('<spec> std::ostream& operator<<(std::ostream& s, <name> o)', node))
     table.insert(lines, apply('{', node))
     table.insert(lines, apply('<indt>switch(o)', node))
     table.insert(lines, apply('<indt>{', node))
@@ -157,80 +173,95 @@ local function global_shift_enum(node)
     return table.concat(lines,"\n")
 end
 
--- Generate plain output stream shift operator for a class type node.
-local function shift_class(node, line)
-    log.trace("shift_class:", ast.details(node))
-
-    if encloses(node, line) then
-        log.debug("Generation code for enclosing node")
-        return
-        {
-            label            = 'friend',
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = friend_shift_class(node)
-        }
-    elseif precedes(node, line) then
-        log.debug("Generation code for preceding node")
-        return
-        {
-            label            = 'inline',
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = global_shift_class(node)
-        }
-    end
+-- Generate output stream friend shift operator snippet for an enum type node.
+local function friend_shift_enum_snippet(node)
+    log.trace("friend_shift_enum_snippet:", ast.details(node))
+    P.spec = 'friend'
+    return shift_enum_impl(node)
 end
 
--- Generate plain output stream shift operator for a class type node.
-local function shift_enum(node, line)
-    log.trace("shift_enum:", ast.details(node))
+-- Generate output stream inline shift operator snippet for an enum type node.
+local function inline_shift_enum_snippet(node)
+    log.trace("inline_shift_enum_snippet:", ast.details(node))
+    P.spec = 'inline'
+    return shift_enum_impl(node)
+end
 
-    if precedes(node, line) then
-        log.debug("Generation code for preceding node")
-        return
-        {
-            label            = 'inline',
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = global_shift_enum(node)
-        }
-    end
+-- Generate output stream friend shift operator completion item for an enum type node.
+local function friend_shift_enum_item(node)
+    log.trace("friend_shift_enum_item:", ast.details(node))
+    return
+    {
+        label            = 'friend',
+        kind             = cmp.lsp.CompletionItemKind.Snippet,
+        insertTextMode   = 2,
+        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+        insertText       = friend_shift_enum_snippet(node)
+    }
+end
+
+-- Generate output stream inline shift operator completion item for an enum type node.
+local function inline_shift_enum_item(node)
+    log.trace("inline_shift_enum_item:", ast.details(node))
+    return
+    {
+        label            = 'inline',
+        kind             = cmp.lsp.CompletionItemKind.Snippet,
+        insertTextMode   = 2,
+        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+        insertText       = inline_shift_enum_snippet(node)
+    }
 end
 
 local M = {}
 
 --- Returns true if the node is of interest to us
-function M.interesting(node, enclosing)
+function M.interesting(preceding, enclosing)
     -- We can generate shift operator for preceding enumeration node
-    if not enclosing and node.role == "declaration" and node.kind == "Enum" then
+    if preceding and preceding.role == "declaration" and preceding.kind == "Enum" then
         return true
     end
-    -- We can generate shift operator for both preceding and enclosing class nodes
-    if node.role == "declaration" and node.kind == "CXXRecord" then
+    -- We can generate shift operator for preceding class node
+    if preceding and preceding.role == "declaration" and preceding.kind == "CXXRecord" then
+        return true
+    end
+    -- We can generate shift operator for enclosing class nodes
+    if enclosing and enclosing.role == "declaration" and enclosing.kind == "CXXRecord" then
         return true
     end
 
     return false
 end
 
--- Generate plain output stream shift operator for a class type node.
-function M.completion_items(node, line)
-    log.trace("completion_items:", ast.details(node))
+-- Generate plain output stream shift operator for a class and enum nodes.
+function M.completion_items(preceding, enclosing)
+    log.trace("completion_items:", ast.details(preceding), ast.details(enclosing))
 
-    -- Set options
     do_droppfix = cfg.options.oss and cfg.options.oss.drop_prefix
     do_camelize = cfg.options.oss and cfg.options.oss.camelize
 
-    if node.kind == "CXXRecord" then
-        return shift_class(node, line)
+    local items = {}
+
+    if preceding and preceding.kind == "CXXRecord" then
+        if enclosing and enclosing.kind == "CXXRecord" then
+            table.insert(items, friend_shift_class_item(preceding))
+        else
+            table.insert(items, inline_shift_class_item(preceding))
+        end
     end
-    if node.kind == "Enum" then
-        return shift_enum(node, line)
+    if enclosing and enclosing.kind == "CXXRecord" then
+        table.insert(items, friend_shift_class_item(enclosing))
     end
+
+    if preceding and preceding.kind == "Enum" then
+        if enclosing and enclosing.kind == "CXXRecord" then
+            table.insert(items, friend_shift_enum_item(preceding))
+        else
+            table.insert(items, inline_shift_enum_item(preceding))
+        end
+    end
+
+    return items
 end
 
 return M
