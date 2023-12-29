@@ -53,7 +53,7 @@ function M.generate(bufnr)
                 table.insert(total, i)
             end
         end
-        log.info("Collected", #total, "completion items", total)
+        log.info("Collected", #total, "completion items")
         return total
     end
 end
