@@ -46,10 +46,8 @@ function M.setup(opts)
     cfg.options = opts
 
     -- We configure log module ourselves
-	if opts ~= nil then
-	    if opts.log then
-            log.new(opts.log, true)
-	    end
+	if opts and opts.log then
+        log.new(opts.log, true)
 	end
 
     log.trace("setup:", opts)

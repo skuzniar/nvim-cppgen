@@ -5,11 +5,18 @@ local log = require('nvim-cppgen.log')
 local cmp = require('cmp')
 
 ---------------------------------------------------------------------------------------------------
--- Output stream shift operators.
+-- Output stream shift operators generator.
 ---------------------------------------------------------------------------------------------------
 
-local do_droppfix = false
-local do_camelize = false
+---------------------------------------------------------------------------------------------------
+-- Parameters
+---------------------------------------------------------------------------------------------------
+local P = {}
+
+P.droppfix = false
+P.camelize = false
+P.equalsgn = ': '
+P.fieldsep = ' '
 
 local function capitalize(s)
     return (string.gsub(s, '^%l', string.upper))
@@ -20,10 +27,10 @@ local function camelize(s)
 end
 
 local function label(name)
-    if do_droppfix then
+    if P.droppfix then
         name = string.gsub(name, '^%a_', '')
     end
-    if do_camelize then
+    if P.camelize then
         name = camelize(name)
     end
 
@@ -46,11 +53,6 @@ local function maxlen(node)
     return max_lab_len, max_nam_len
 end
 
----------------------------------------------------------------------------------------------------
--- Parameters
----------------------------------------------------------------------------------------------------
-local P = {}
-
 -- Apply node object to the format string 
 local function apply(format, node)
     local name = ast.name(node)
@@ -68,6 +70,8 @@ local function apply(format, node)
     result = string.gsub(result, "<indt>", indt)
     result = string.gsub(result, "<lpad>", lpad)
     result = string.gsub(result, "<npad>", npad)
+    result = string.gsub(result, "<eqls>", P.equalsgn)
+    result = string.gsub(result, "<fsep>", P.fieldsep)
     return result;
 end
 
@@ -86,7 +90,7 @@ local function shift_class_impl(node)
     ast.visit_children(node,
         function(n)
             if n.kind == "Field" then
-                table.insert(lines, apply([[<indt>s << "<labl>:"<lpad> << ' ' << o.<name><npad> << ' ';]], n))
+                table.insert(lines, apply([[<indt>s << "<labl><eqls>"<lpad> << o.<name><npad> << "<fsep>";]], n))
             end
         end
     )
@@ -237,8 +241,14 @@ end
 function M.completion_items(preceding, enclosing)
     log.trace("completion_items:", ast.details(preceding), ast.details(enclosing))
 
-    do_droppfix = cfg.options.oss and cfg.options.oss.drop_prefix
-    do_camelize = cfg.options.oss and cfg.options.oss.camelize
+    P.droppfix = cfg.options.oss and cfg.options.oss.drop_prefix
+    P.camelize = cfg.options.oss and cfg.options.oss.camelize
+    if cfg.options.oss and cfg.options.oss.equal_sign then
+        P.equalsgn = cfg.options.oss.equal_sign
+    end
+    if cfg.options.oss and cfg.options.oss.field_separator then
+        P.fieldsep = cfg.options.oss.field_separator
+    end
 
     local items = {}
 
