@@ -21,18 +21,24 @@ end
 
 --- Return node details - name and range, adjusted for line numbers starting from one.
 function M.details(node)
-    if node.range then
-        --return node.role .. ' ' .. node.kind .. ' ' .. (node.detail or "<???>") .. '[' .. node.range['start'].line .. ',' .. node.range['end'].line .. ']'
-        return node.kind .. ' ' .. (node.detail or "<???>") .. '[' .. node.range['start'].line .. ',' .. node.range['end'].line .. ']'
+    if node then
+        if node.range then
+            return node.kind .. ' ' .. (node.detail or "<???>") .. '[' .. node.range['start'].line .. ',' .. node.range['end'].line .. ']'
+        else
+            return node.kind .. ' ' .. (node.detail or "<???>") .. '[]'
+        end
     else
-        --return node.role .. ' ' .. node.kind .. ' ' .. (node.detail or "<???>") .. '[]'
-        return node.kind .. ' ' .. (node.detail or "<???>") .. '[]'
+        return 'nil'
     end
 end
 
 --- Return node name.
 function M.name(node)
-    return (node.detail or "<???>")
+    if node then
+        return (node.detail or "<???>")
+    else
+        return 'nil'
+    end
 end
 
 --- Depth first traversal over AST tree with filter, pre and post order operations.
@@ -69,9 +75,9 @@ local function precedes(node, line)
     return node.range and node.range['end'].line < line
 end
 
---- Returns true if the cursor line position is before the node's range
-local function follows(node, line)
-    return node.range and node.range['start'].line > line
+--- Returns true if the node is implicit - has zero range
+local function phantom(node)
+    return node.range and node.range['end'].line == node.range['start'].line
 end
 
 --- Given the line cursor position, find smallest enclosing and closest preceding AST node
@@ -87,7 +93,7 @@ function M.relevant_nodes(bufnr, line)
         M.dfs(ast[bufnr],
             function(node)
                 log.trace("Looking at node", M.details(node))
-                return true
+                return not phantom(node)
             end,
             function(node)
                 if encloses(node, line) then

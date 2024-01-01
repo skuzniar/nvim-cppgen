@@ -54,7 +54,6 @@ end
 --- Invoke completion (required).
 function M:complete(params, callback)
     log.trace('complete: Context', params.context)
-    log.debug('complete: Context', params.context)
     local items = gen.generate(params.context.bufnr)
     if items then
         callback(items)
