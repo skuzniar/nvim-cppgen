@@ -57,12 +57,25 @@ function M.dfs(node, filt, pref, posf)
 end
 
 --- Visit immediate children of a given node.
-function M.visit_children(node, visf)
+function M.visit_children(node, f)
     if node.children then
         for _, child in ipairs(node.children) do
-            visf(child)
+            f(child)
 		end
     end
+end
+
+--- Count immediate children of a given node that satisfy the predicate.
+function M.count_children(node, p)
+    local cnt = 0
+    if node.children then
+        for _, child in ipairs(node.children) do
+            if p(child) then
+               cnt = cnt + 1
+            end
+		end
+    end
+    return cnt
 end
 
 --- Returns true if the cursor line position is within the node's range

@@ -16,7 +16,7 @@ local P = {}
 P.droppfix = false
 P.camelize = false
 P.equalsgn = ': '
-P.fieldsep = ' '
+P.fieldsep = "' '"
 
 local function capitalize(s)
     return (string.gsub(s, '^%l', string.upper))
@@ -87,10 +87,22 @@ local function shift_class_impl(node)
     table.insert(lines, apply('{', node))
     table.insert(lines, apply('<indt>// clang-format off', node))
 
+    local cnt = ast.count_children(node,
+        function(n)
+            return n.kind == "Field"
+        end
+    )
+
+    local idx = 1
     ast.visit_children(node,
         function(n)
             if n.kind == "Field" then
-                table.insert(lines, apply([[<indt>s << "<labl><eqls>"<lpad> << o.<name><npad> << "<fsep>";]], n))
+                if idx == cnt then
+                    table.insert(lines, apply([[<indt>s << "<labl><eqls>"<lpad> << o.<name>;]], n))
+                else
+                    table.insert(lines, apply([[<indt>s << "<labl><eqls>"<lpad> << o.<name><npad> << <fsep>;]], n))
+                end
+                idx = idx + 1
             end
         end
     )
