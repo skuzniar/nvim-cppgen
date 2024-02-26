@@ -93,6 +93,10 @@ local function shift_class_impl(node)
         end
     )
 
+    if P.printcname then
+        table.insert(lines, apply([[<indt>s << ]] .. P.printcname .. [[;]], node))
+    end
+
     local idx = 1
     ast.visit_children(node,
         function(n)
@@ -260,6 +264,9 @@ function M.completion_items(preceding, enclosing)
     end
     if cfg.options.oss and cfg.options.oss.field_separator then
         P.fieldsep = cfg.options.oss.field_separator
+    end
+    if cfg.options.oss and cfg.options.oss.print_class_name then
+        P.printcname = cfg.options.oss.print_class_name
     end
 
     local items = {}
