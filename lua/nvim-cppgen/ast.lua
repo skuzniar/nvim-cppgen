@@ -88,7 +88,12 @@ local function precedes(node, line)
     return node.range and node.range['end'].line < line
 end
 
---- Returns true if the node is implicit - has zero range
+--- Returns true if nodes overlay each other
+local function overlay(nodea, nodeb)
+    return nodea and nodeb and nodea.range and nodeb.range and nodea.range['end'].line == nodeb.range['end'].line and nodea.range['start'].line == nodeb.range['start'].line
+end
+
+--- Returns true if the node has zero range
 local function phantom(node)
     return node.range and node.range['end'].line == node.range['start'].line
 end
@@ -106,7 +111,7 @@ function M.relevant_nodes(bufnr, line)
         M.dfs(ast[bufnr],
             function(node)
                 log.trace("Looking at node", M.details(node))
-                return not phantom(node)
+                return not phantom(node) and not overlay(node, result.enclosing) and not overlay(node, result.preceding)
             end,
             function(node)
                 if encloses(node, line) then
