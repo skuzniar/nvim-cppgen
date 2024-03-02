@@ -85,7 +85,9 @@ local function shift_class_impl(node)
 
     table.insert(lines, apply('<spec> std::ostream& operator<<(std::ostream& s, const <name>& o)', node))
     table.insert(lines, apply('{', node))
-    table.insert(lines, apply('<indt>// clang-format off', node))
+    if P.keepindn then
+        table.insert(lines, apply('<indt>// clang-format off', node))
+    end
 
     local cnt = ast.count_children(node,
         function(n)
@@ -111,7 +113,9 @@ local function shift_class_impl(node)
         end
     )
 
-    table.insert(lines, apply('<indt>// clang-format on', node))
+    if P.keepindn then
+        table.insert(lines, apply('<indt>// clang-format on', node))
+    end
     table.insert(lines, apply('<indt>return s;', node))
     table.insert(lines, apply('}', node))
 
@@ -172,7 +176,9 @@ local function shift_enum_impl(node)
     table.insert(lines, apply('{', node))
     table.insert(lines, apply('<indt>switch(o)', node))
     table.insert(lines, apply('<indt>{', node))
-    table.insert(lines, apply('<indt><indt>// clang-format off', node))
+    if P.keepindn then
+        table.insert(lines, apply('<indt><indt>// clang-format off', node))
+    end
 
     ast.visit_children(node,
         function(n)
@@ -182,7 +188,9 @@ local function shift_enum_impl(node)
         end
     )
 
-    table.insert(lines, apply('<indt><indt>// clang-format on', node))
+    if P.keepindn then
+        table.insert(lines, apply('<indt><indt>// clang-format on', node))
+    end
     table.insert(lines, apply('<indt>};', node))
 
     table.insert(lines, apply('<indt>return s;', node))
@@ -259,6 +267,7 @@ function M.completion_items(preceding, enclosing)
 
     P.droppfix = cfg.options.oss and cfg.options.oss.drop_prefix
     P.camelize = cfg.options.oss and cfg.options.oss.camelize
+    P.keepindn = cfg.options.oss and cfg.options.oss.keep_indentation
     if cfg.options.oss and cfg.options.oss.equal_sign then
         P.equalsgn = cfg.options.oss.equal_sign
     end
