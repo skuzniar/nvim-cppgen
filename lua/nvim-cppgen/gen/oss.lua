@@ -15,6 +15,7 @@ local P = {}
 
 P.droppfix = false
 P.camelize = false
+P.indt     = '   '
 P.equalsgn = ': '
 P.fieldsep = "' '"
 
@@ -57,7 +58,6 @@ end
 local function apply(format, node)
     local name = ast.name(node)
     local labl = label(ast.name(node))
-    local indt = string.rep(' ', P.indt)
     local lpad = string.rep(' ', P.llen - string.len(labl))
     local npad = string.rep(' ', P.nlen - string.len(name))
     local spec = P.spec or ''
@@ -67,7 +67,7 @@ local function apply(format, node)
     result = string.gsub(result, "<spec>", spec)
     result = string.gsub(result, "<name>", name)
     result = string.gsub(result, "<labl>", labl)
-    result = string.gsub(result, "<indt>", indt)
+    result = string.gsub(result, "<indt>", P.indt)
     result = string.gsub(result, "<lpad>", lpad)
     result = string.gsub(result, "<npad>", npad)
     result = string.gsub(result, "<eqls>", P.equalsgn)
@@ -79,13 +79,12 @@ end
 local function shift_class_impl(node)
     log.debug("shift_class_impl:", ast.details(node))
     P.llen, P.nlen = maxlen(node)
-    P.indt = 4
 
     local lines = {}
 
     table.insert(lines, apply('<spec> std::ostream& operator<<(std::ostream& s, const <name>& o)', node))
     table.insert(lines, apply('{', node))
-    if P.keepindn then
+    if P.keepindt then
         table.insert(lines, apply('<indt>// clang-format off', node))
     end
 
@@ -113,7 +112,7 @@ local function shift_class_impl(node)
         end
     )
 
-    if P.keepindn then
+    if P.keepindt then
         table.insert(lines, apply('<indt>// clang-format on', node))
     end
     table.insert(lines, apply('<indt>return s;', node))
@@ -168,7 +167,6 @@ end
 local function shift_enum_impl(node)
     log.trace("shift_enum_impl:", ast.details(node))
     P.llen, P.nlen = maxlen(node)
-    P.indt = 4
 
     local lines = {}
 
@@ -176,7 +174,7 @@ local function shift_enum_impl(node)
     table.insert(lines, apply('{', node))
     table.insert(lines, apply('<indt>switch(o)', node))
     table.insert(lines, apply('<indt>{', node))
-    if P.keepindn then
+    if P.keepindt then
         table.insert(lines, apply('<indt><indt>// clang-format off', node))
     end
 
@@ -188,7 +186,7 @@ local function shift_enum_impl(node)
         end
     )
 
-    if P.keepindn then
+    if P.keepindt then
         table.insert(lines, apply('<indt><indt>// clang-format on', node))
     end
     table.insert(lines, apply('<indt>};', node))
@@ -267,7 +265,10 @@ function M.completion_items(preceding, enclosing)
 
     P.droppfix = cfg.options.oss and cfg.options.oss.drop_prefix
     P.camelize = cfg.options.oss and cfg.options.oss.camelize
-    P.keepindn = cfg.options.oss and cfg.options.oss.keep_indentation
+    P.keepindt = cfg.options.oss and cfg.options.oss.keep_indentation
+    if cfg.options.oss and cfg.options.oss.indentation then
+        P.indt = cfg.options.oss.indentation
+    end
     if cfg.options.oss and cfg.options.oss.equal_sign then
         P.equalsgn = cfg.options.oss.equal_sign
     end

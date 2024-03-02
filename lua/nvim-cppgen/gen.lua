@@ -31,11 +31,11 @@ function M.can_generate(bufnr)
 	    local line = cursor[1] - 1
 	    local nodes = ast.relevant_nodes(bufnr, line)
 	    if interesting(nodes.preceding, nodes.enclosing) then
-            log.info("Can generate code in buffer", bufnr, "line", line)
+            log.debug("Can generate code in buffer", bufnr, "line", line)
             return true
         end
     end
-    log.info("Can not generate code in buffer", bufnr)
+    log.debug("Can not generate code in buffer", bufnr)
     return false
 end
 
