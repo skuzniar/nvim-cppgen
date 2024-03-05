@@ -93,6 +93,11 @@ local function overlay(nodea, nodeb)
     return nodea and nodeb and nodea.range and nodeb.range and nodea.range['end'].line == nodeb.range['end'].line and nodea.range['start'].line == nodeb.range['start'].line
 end
 
+--- If nodea overlays nodeb, return true if nodea precedes nodeb in terms of its type
+local function trumps(nodea, nodeb)
+    return not overlay(nodea, nodeb) or (nodea.kind == "CXXRecord" or nodea.kind == "Enum")
+end
+
 --- Returns true if the node has zero range
 local function phantom(node)
     return node.range and node.range['end'].line == node.range['start'].line
@@ -111,17 +116,17 @@ function M.relevant_nodes(bufnr, line)
         M.dfs(ast[bufnr],
             function(node)
                 log.trace("Looking at node", M.details(node))
-                return not phantom(node) and not overlay(node, result.enclosing) and not overlay(node, result.preceding)
+                return not phantom(node)
             end,
             function(node)
-                if encloses(node, line) then
-                    log.trace("Found enclosing node", M.details(node))
+                if encloses(node, line) and trumps(node, result.enclosing) then
+                    log.debug("Found enclosing node", M.details(node))
                     result.enclosing = node
                 end
             end,
             function(node)
-                if precedes(node, line) then
-                    log.trace("Found preceding node", M.details(node))
+                if precedes(node, line) and trumps(node, result.preceding) then
+                    log.debug("Found preceding node", M.details(node))
                     result.preceding = node
                 end
             end

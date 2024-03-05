@@ -241,21 +241,20 @@ end
 
 local M = {}
 
+local function isEnum(node)
+    return node and node.role == "declaration" and (node.kind == "Enum" or node.kind == "Field")
+end
+
+local function isClass(node)
+    return node and node.role == "declaration" and (node.kind == "CXXRecord" or node.kind == "Field")
+end
+
 --- Returns true if the node is of interest to us
 function M.interesting(preceding, enclosing)
-    -- We can generate shift operator for preceding enumeration node
-    if preceding and preceding.role == "declaration" and preceding.kind == "Enum" then
+    -- We can generate shift operator for preceding enumeration node and both preceding and enclosing class nodes
+    if isEnum(preceding) or isClass(preceding) or isClass(enclosing) then
         return true
     end
-    -- We can generate shift operator for preceding class node
-    if preceding and preceding.role == "declaration" and preceding.kind == "CXXRecord" then
-        return true
-    end
-    -- We can generate shift operator for enclosing class nodes
-    if enclosing and enclosing.role == "declaration" and enclosing.kind == "CXXRecord" then
-        return true
-    end
-
     return false
 end
 
@@ -281,19 +280,19 @@ function M.completion_items(preceding, enclosing)
 
     local items = {}
 
-    if preceding and preceding.kind == "CXXRecord" then
-        if enclosing and enclosing.kind == "CXXRecord" then
+    if isClass(preceding) then
+        if isClass(enclosing) then
             table.insert(items, friend_shift_class_item(preceding))
         else
             table.insert(items, inline_shift_class_item(preceding))
         end
     end
-    if enclosing and enclosing.kind == "CXXRecord" then
+    if isClass(enclosing) then
         table.insert(items, friend_shift_class_item(enclosing))
     end
 
-    if preceding and preceding.kind == "Enum" then
-        if enclosing and enclosing.kind == "CXXRecord" then
+    if isEnum(preceding) then
+        if isClass(enclosing) then
             table.insert(items, friend_shift_enum_item(preceding))
         else
             table.insert(items, inline_shift_enum_item(preceding))
