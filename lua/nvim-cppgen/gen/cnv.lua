@@ -146,7 +146,7 @@ end
 -- Generate from string function snippet for an enum type node.
 local function from_string_enum_snippet(node)
     log.trace("from_string_enum_snippet:", ast.details(node))
-    P.spec = 'inline'
+    P.spec = 'static inline'
     return from_string_enum_impl(node)
 end
 
