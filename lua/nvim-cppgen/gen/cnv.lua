@@ -140,22 +140,41 @@ local function from_string_enum_impl(node)
 end
 
 -- Generate from string function snippet for an enum type node.
-local function from_string_enum_snippet(node)
-    log.trace("from_string_enum_snippet:", ast.details(node))
-    P.spec = 'static inline'
+local function from_string_member_enum_snippet(node)
+    log.trace("from_string_member_enum_snippet:", ast.details(node))
+    P.spec = 'static'
     return from_string_enum_impl(node)
 end
 
--- Generate from string function snippet item for an enum type node.
-local function from_string_enum_item(node)
-    log.trace("from_string_enum_item:", ast.details(node))
+local function from_string_template_enum_snippet(node)
+    log.trace("from_string_template_enum_snippet:", ast.details(node))
+    P.spec = 'template <> inline'
+    return from_string_enum_impl(node)
+end
+
+-- Generate from string (member) function snippet item for an enum type node.
+local function from_string_member_enum_item(node)
+    log.trace("from_string_member_enum_item:", ast.details(node))
     return
     {
         label            = 'from',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = from_string_enum_snippet(node)
+        insertText       = from_string_member_enum_snippet(node)
+    }
+end
+
+-- Generate from string function snippet item for an enum type node.
+local function from_string_template_enum_item(node)
+    log.trace("from_string_template_enum_item:", ast.details(node))
+    return
+    {
+        label            = 'from',
+        kind             = cmp.lsp.CompletionItemKind.Snippet,
+        insertTextMode   = 2,
+        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+        insertText       = from_string_template_enum_snippet(node)
     }
 end
 
@@ -165,9 +184,13 @@ local function isEnum(node)
     return node and node.role == "declaration" and (node.kind == "Enum" or node.kind == "Field")
 end
 
+local function isClass(node)
+    return node and node.role == "declaration" and (node.kind == "CXXRecord" or node.kind == "Field")
+end
+
 --- Returns true if the node is of interest to us
 function M.interesting(preceding, _)
-    -- We can generate shift operator for preceding enumeration node and both preceding and enclosing class nodes
+    -- We can generate conversion function for preceding enumeration node
     if isEnum(preceding) then
         return true
     end
@@ -197,7 +220,11 @@ function M.completion_items(preceding, enclosing)
     local items = {}
 
     if isEnum(preceding) then
-        table.insert(items, from_string_enum_item(preceding))
+        if isClass(enclosing) then
+            table.insert(items, from_string_member_enum_item(preceding))
+        else
+            table.insert(items, from_string_template_enum_item(preceding))
+        end
     end
 
     return items
