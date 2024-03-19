@@ -54,31 +54,48 @@ local function maxlen(node)
     return max_lab_len, max_nam_len
 end
 
+-- Calculate the longest length of labels and values
+local function maxlens(records)
+    local max_lab_len = 0
+    local max_val_len = 0
+
+    for _,r in ipairs(records) do 
+        max_lab_len = math.max(max_lab_len, string.len(r.label))
+        max_val_len = math.max(max_val_len, string.len(r.value))
+    end
+    return max_lab_len, max_val_len
+end
+
 -- Apply node object to the format string 
 local function apply(format, node)
     local name = ast.name(node)
-    local labl = label(ast.name(node))
-    local lpad = string.rep(' ', P.llen - string.len(labl))
-    local npad = string.rep(' ', P.nlen - string.len(name))
+    local lpad = string.rep(' ', P.llen - string.len(P.labl))
+    local vpad = string.rep(' ', P.vlen - string.len(P.valu))
     local spec = P.spec or ''
 
     local result  = format
 
-    result = string.gsub(result, "<spec>", spec)
+    result = string.gsub(result, "<spec>", P.spec or '')
     result = string.gsub(result, "<name>", name)
-    result = string.gsub(result, "<labl>", labl)
+    result = string.gsub(result, "<labl>", P.labl)
+    result = string.gsub(result, "<valu>", P.valu)
     result = string.gsub(result, "<indt>", P.indt)
     result = string.gsub(result, "<lpad>", lpad)
-    result = string.gsub(result, "<npad>", npad)
+    result = string.gsub(result, "<vpad>", vpad)
     result = string.gsub(result, "<eqls>", P.equalsgn)
     result = string.gsub(result, "<fsep>", P.fieldsep)
+
+    if (P.litr) then
+        result = string.gsub(result, "<litr>", P.litr)
+    end
+
     return result;
 end
 
 -- Generate output stream shift operator for a class type node.
 local function shift_class_impl(node)
     log.debug("shift_class_impl:", ast.details(node))
-    P.llen, P.nlen = maxlen(node)
+    P.llen, P.vlen = maxlen(node)
 
     local lines = {}
 
@@ -105,7 +122,7 @@ local function shift_class_impl(node)
                 if idx == cnt then
                     table.insert(lines, apply([[<indt>s << "<labl><eqls>"<lpad> << o.<name>;]], n))
                 else
-                    table.insert(lines, apply([[<indt>s << "<labl><eqls>"<lpad> << o.<name><npad> << <fsep>;]], n))
+                    table.insert(lines, apply([[<indt>s << "<labl><eqls>"<lpad> << o.<name><vpad> << <fsep>;]], n))
                 end
                 idx = idx + 1
             end
@@ -163,10 +180,58 @@ local function inline_shift_class_item(node)
     }
 end
 
+-- Attempt to find integral constant for the enum element
+local function integral_literal(node)
+    log.trace("integral_literal:", ast.details(node))
+
+    local result = nil
+    ast.visit_children(node,
+        function(n)
+            if n.kind == "IntegerLiteral" or n.kind == "CharacterLiteral" then
+                result = n.detail
+            else
+                result = integral_literal(n)
+            end
+            if (result) then
+                return result
+            end
+        end
+    )
+    return result
+end
+
+-- Collect names and values for an enum type node.
+local function enum_labels_and_values(node)
+    local records = {}
+    ast.visit_children(node,
+        function(n)
+            if n.kind == "EnumConstant" then
+                local record = {}
+                record.label = ast.name(node) .. '::' .. ast.name(n)
+                local lit = integral_literal(n)
+                if (lit) then
+                    record.value = '"' .. '(' .. lit .. ') - ' .. ast.name(n) .. '"'
+                else
+                    record.value = '"' .. ast.name(n) .. '"'
+                end
+
+                table.insert(records, record)
+            end
+        end
+    )
+    return records
+end
+
 -- Generate output stream shift operator for an enum type node.
 local function shift_enum_impl(node)
     log.trace("shift_enum_impl:", ast.details(node))
-    P.llen, P.nlen = maxlen(node)
+
+    P.name = ''
+    P.labl = ''
+    P.valu = ''
+
+    local records  = enum_labels_and_values(node)
+    P.llen, P.vlen = maxlens(records)
 
     local lines = {}
 
@@ -178,13 +243,11 @@ local function shift_enum_impl(node)
         table.insert(lines, apply('<indt><indt>// clang-format off', node))
     end
 
-    ast.visit_children(node,
-        function(n)
-            if n.kind == "EnumConstant" then
-                table.insert(lines, apply('<indt><indt>case ' .. ast.name(node) .. [[::<name>:<npad> s << "<name>";<npad> break;]], n))
-            end
-        end
-    )
+    for _,r in ipairs(records) do 
+        P.labl = r.label
+        P.valu = r.value
+        table.insert(lines, apply('<indt><indt>case <labl>:<lpad> s << <valu>;<vpad> break;', n))
+    end
 
     if P.keepindt then
         table.insert(lines, apply('<indt><indt>// clang-format on', node))
