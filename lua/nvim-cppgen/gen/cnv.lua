@@ -57,8 +57,6 @@ end
 -- Apply node object to the format string 
 local function apply(format, node)
     local name = ast.name(node)
-    local labl = label(ast.name(node))
-    local lpad = string.rep(' ', P.llen - string.len(labl))
     local npad = string.rep(' ', P.nlen - string.len(name))
     local spec = P.spec or ''
 
@@ -66,9 +64,7 @@ local function apply(format, node)
 
     result = string.gsub(result, "<spec>", spec)
     result = string.gsub(result, "<name>", name)
-    result = string.gsub(result, "<labl>", labl)
     result = string.gsub(result, "<indt>", P.indt)
-    result = string.gsub(result, "<lpad>", lpad)
     result = string.gsub(result, "<npad>", npad)
     result = string.gsub(result, "<eqls>", P.equalsgn)
     result = string.gsub(result, "<fsep>", P.fieldsep)
@@ -88,7 +84,7 @@ local function from_string_enum_impl(node)
     log.trace("from_string_enum_impl:", ast.details(node))
     P.llen, P.nlen = maxlen(node)
 
-    P.pname = ast.name(node) 
+    P.pname = ast.name(node)
 
     local lines = {}
 
@@ -116,7 +112,7 @@ local function from_string_enum_impl(node)
     ast.visit_children(node,
         function(n)
             if n.kind == "EnumConstant" then
-                P.cname = ast.name(n) 
+                P.cname = ast.name(n)
                 if idx == cnt then
                     table.insert(lines, apply('<indt><indt>i == static_cast<std::underlying_type_t<<pnam>>>(<pnam>::<cnam>)<npad>;', n))
                 else
@@ -170,7 +166,7 @@ local function isEnum(node)
 end
 
 --- Returns true if the node is of interest to us
-function M.interesting(preceding, enclosing)
+function M.interesting(preceding, _)
     -- We can generate shift operator for preceding enumeration node and both preceding and enclosing class nodes
     if isEnum(preceding) then
         return true

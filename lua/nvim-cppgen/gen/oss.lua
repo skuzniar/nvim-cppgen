@@ -38,45 +38,27 @@ local function label(name)
     return name
 end
 
--- Calculate the longest length of the childe's label and name
-local function maxlen(node)
-    local max_lab_len = 0
-    local max_nam_len = 0
-
-    ast.visit_children(node,
-        function(n)
-            if n.kind == "EnumConstant" or n.kind == "Field" then
-                max_lab_len = math.max(max_lab_len, string.len(label(ast.name(n))))
-                max_nam_len = math.max(max_nam_len, string.len(ast.name(n)))
-            end
-        end
-    )
-    return max_lab_len, max_nam_len
-end
-
 -- Calculate the longest length of labels and values
 local function maxlens(records)
     local max_lab_len = 0
     local max_val_len = 0
 
-    for _,r in ipairs(records) do 
+    for _,r in ipairs(records) do
         max_lab_len = math.max(max_lab_len, string.len(r.label))
         max_val_len = math.max(max_val_len, string.len(r.value))
     end
     return max_lab_len, max_val_len
 end
 
--- Apply node object to the format string 
-local function apply(format, node)
-    local name = ast.name(node)
+-- Apply global parameters to the format string 
+local function apply(format)
     local lpad = string.rep(' ', P.llen - string.len(P.labl))
     local vpad = string.rep(' ', P.vlen - string.len(P.valu))
-    local spec = P.spec or ''
 
     local result  = format
 
     result = string.gsub(result, "<spec>", P.spec or '')
-    result = string.gsub(result, "<name>", name)
+    result = string.gsub(result, "<name>", P.name)
     result = string.gsub(result, "<labl>", P.labl)
     result = string.gsub(result, "<valu>", P.valu)
     result = string.gsub(result, "<indt>", P.indt)
@@ -85,61 +67,65 @@ local function apply(format, node)
     result = string.gsub(result, "<eqls>", P.equalsgn)
     result = string.gsub(result, "<fsep>", P.fieldsep)
 
-    if (P.litr) then
-        result = string.gsub(result, "<litr>", P.litr)
-    end
-
     return result;
+end
+
+-- Collect names and values for a class type node.
+local function class_labels_and_values(node)
+    local records = {}
+    ast.visit_children(node,
+        function(n)
+            if n.kind == "Field" then
+                local record = {}
+                record.label = label(ast.name(n))
+                record.value = ast.name(n)
+                table.insert(records, record)
+            end
+        end
+    )
+    return records
 end
 
 -- Generate output stream shift operator for a class type node.
 local function shift_class_impl(node)
     log.debug("shift_class_impl:", ast.details(node))
 
-    P.name = ''
+    P.name = ast.name(node)
     P.labl = ''
     P.valu = ''
 
-    P.llen, P.vlen = maxlen(node)
+    local records  = class_labels_and_values(node)
+    P.llen, P.vlen = maxlens(records)
 
     local lines = {}
 
-    table.insert(lines, apply('<spec> std::ostream& operator<<(std::ostream& s, const <name>& o)', node))
-    table.insert(lines, apply('{', node))
+    table.insert(lines, apply('<spec> std::ostream& operator<<(std::ostream& s, const <name>& o)'))
+    table.insert(lines, apply('{'))
     if P.keepindt then
-        table.insert(lines, apply('<indt>// clang-format off', node))
+        table.insert(lines, apply('<indt>// clang-format off'))
     end
 
-    local cnt = ast.count_children(node,
-        function(n)
-            return n.kind == "Field"
-        end
-    )
-
     if P.printcname then
-        table.insert(lines, apply([[<indt>s << ]] .. P.printcname .. [[;]], node))
+        table.insert(lines, apply([[<indt>s << ]] .. P.printcname .. [[;]]))
     end
 
     local idx = 1
-    ast.visit_children(node,
-        function(n)
-            if n.kind == "Field" then
-                P.labl = label(ast.name(n))
-                if idx == cnt then
-                    table.insert(lines, apply([[<indt>s << "<labl><eqls>"<lpad> << o.<name>;]], n))
-                else
-                    table.insert(lines, apply([[<indt>s << "<labl><eqls>"<lpad> << o.<name><vpad> << <fsep>;]], n))
-                end
-                idx = idx + 1
-            end
+    for _,r in ipairs(records) do
+        P.labl = r.label
+        P.valu = r.value
+        if idx == #records then
+            table.insert(lines, apply([[<indt>s << "<labl><eqls>"<lpad> << o.<valu>;]]))
+        else
+            table.insert(lines, apply([[<indt>s << "<labl><eqls>"<lpad> << o.<valu><vpad> << <fsep>;]]))
         end
-    )
+        idx = idx + 1
+    end
 
     if P.keepindt then
-        table.insert(lines, apply('<indt>// clang-format on', node))
+        table.insert(lines, apply('<indt>// clang-format on'))
     end
-    table.insert(lines, apply('<indt>return s;', node))
-    table.insert(lines, apply('}', node))
+    table.insert(lines, apply('<indt>return s;'))
+    table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
 
@@ -216,7 +202,7 @@ local function enum_labels_and_values(node)
                 record.label = ast.name(node) .. '::' .. ast.name(n)
                 local lit = integral_literal(n)
                 if (lit) then
-                    record.value = '"' .. '(' .. lit .. ') - ' .. ast.name(n) .. '"'
+                    record.value = '"' .. lit .. '(' .. ast.name(n) .. ')' .. '"'
                 else
                     record.value = '"' .. ast.name(n) .. '"'
                 end
@@ -232,7 +218,7 @@ end
 local function shift_enum_impl(node)
     log.trace("shift_enum_impl:", ast.details(node))
 
-    P.name = ''
+    P.name = ast.name(node)
     P.labl = ''
     P.valu = ''
 
@@ -241,27 +227,27 @@ local function shift_enum_impl(node)
 
     local lines = {}
 
-    table.insert(lines, apply('<spec> std::ostream& operator<<(std::ostream& s, <name> o)', node))
-    table.insert(lines, apply('{', node))
-    table.insert(lines, apply('<indt>switch(o)', node))
-    table.insert(lines, apply('<indt>{', node))
+    table.insert(lines, apply('<spec> std::ostream& operator<<(std::ostream& s, <name> o)'))
+    table.insert(lines, apply('{'))
+    table.insert(lines, apply('<indt>switch(o)'))
+    table.insert(lines, apply('<indt>{'))
     if P.keepindt then
-        table.insert(lines, apply('<indt><indt>// clang-format off', node))
+        table.insert(lines, apply('<indt><indt>// clang-format off'))
     end
 
-    for _,r in ipairs(records) do 
+    for _,r in ipairs(records) do
         P.labl = r.label
         P.valu = r.value
-        table.insert(lines, apply('<indt><indt>case <labl>:<lpad> s << <valu>;<vpad> break;', n))
+        table.insert(lines, apply('<indt><indt>case <labl>:<lpad> s << <valu>;<vpad> break;'))
     end
 
     if P.keepindt then
-        table.insert(lines, apply('<indt><indt>// clang-format on', node))
+        table.insert(lines, apply('<indt><indt>// clang-format on'))
     end
-    table.insert(lines, apply('<indt>};', node))
+    table.insert(lines, apply('<indt>};'))
 
-    table.insert(lines, apply('<indt>return s;', node))
-    table.insert(lines, apply('}', node))
+    table.insert(lines, apply('<indt>return s;'))
+    table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
 
