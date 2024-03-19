@@ -8,7 +8,8 @@ local log = require('nvim-cppgen.log')
 ---------------------------------------------------------------------------------------------------
 
 local G = {
-    require('nvim-cppgen.gen.oss')
+    require('nvim-cppgen.gen.oss'),
+    require('nvim-cppgen.gen.cnv')
 }
 
 --- Exported functions

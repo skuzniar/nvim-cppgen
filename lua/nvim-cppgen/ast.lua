@@ -14,7 +14,7 @@ local relnodes = {}
 --- LSP server request callback
 local function lsp_callback(bufnr, symbols)
     log.info("Received AST data with", (symbols and symbols.children and #symbols.children or 0), "top level nodes")
-    log.trace(symbols)
+    log.debug(symbols)
 	ast[bufnr] = symbols
     relnodes[bufnr] = nil
 end
