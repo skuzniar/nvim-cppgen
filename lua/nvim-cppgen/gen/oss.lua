@@ -95,6 +95,11 @@ end
 -- Generate output stream shift operator for a class type node.
 local function shift_class_impl(node)
     log.debug("shift_class_impl:", ast.details(node))
+
+    P.name = ''
+    P.labl = ''
+    P.valu = ''
+
     P.llen, P.vlen = maxlen(node)
 
     local lines = {}
@@ -119,6 +124,7 @@ local function shift_class_impl(node)
     ast.visit_children(node,
         function(n)
             if n.kind == "Field" then
+                P.labl = label(ast.name(n))
                 if idx == cnt then
                     table.insert(lines, apply([[<indt>s << "<labl><eqls>"<lpad> << o.<name>;]], n))
                 else
