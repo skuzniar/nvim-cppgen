@@ -5,6 +5,7 @@ local log = require('nvim-cppgen.log')
 local M = {}
 
 local cppgen = 'cppgen'
+local csrcid = nil
 
 --- LSP attach callback
 local function attach(client, bufnr)
@@ -36,8 +37,10 @@ local function attach(client, bufnr)
 	})
 
     -- Add our source to cmp
-    log.info("Adding completion source", log.squoted(cppgen))
-    require('cmp').register_source(cppgen, cgn.source())
+    if not csrcid then
+        log.info("Adding completion source", log.squoted(cppgen))
+        csrcid = require('cmp').register_source(cppgen, cgn.source())
+    end
 end
 
 --- Setup

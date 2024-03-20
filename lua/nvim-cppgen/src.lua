@@ -8,7 +8,7 @@ local log = require('nvim-cppgen.log')
 local M = {}
 
 --- Return new source
-M.new = function()
+function M:new()
     log.trace('new')
     return setmetatable({}, { __index = M })
 end
@@ -53,7 +53,7 @@ end
 
 --- Invoke completion (required).
 function M:complete(params, callback)
-    log.trace('complete: Context', params.context)
+    log.trace('complete: Params', params)
     local items = gen.generate(params.context.bufnr)
     if items then
         callback(items)
