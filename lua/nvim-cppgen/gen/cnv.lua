@@ -54,16 +54,15 @@ local function maxlen(node)
     return max_lab_len, max_nam_len
 end
 
--- Apply node object to the format string 
-local function apply(format, node)
-    local name = ast.name(node)
-    local npad = string.rep(' ', P.nlen - string.len(name))
+-- Apply global parameters to the format string 
+local function apply(format)
+    local npad = string.rep(' ', P.nlen - string.len(P.name))
     local spec = P.spec or ''
 
     local result  = format
 
     result = string.gsub(result, "<spec>", spec)
-    result = string.gsub(result, "<name>", name)
+    result = string.gsub(result, "<name>", P.name)
     result = string.gsub(result, "<indt>", P.indt)
     result = string.gsub(result, "<npad>", npad)
     result = string.gsub(result, "<eqls>", P.equalsgn)
@@ -84,20 +83,21 @@ local function from_string_enum_impl(node)
     log.trace("from_string_enum_impl:", ast.details(node))
     P.llen, P.nlen = maxlen(node)
 
-    P.pname = ast.name(node)
+    P.name  = ast.name(node)
+    P.pname = P.name
 
     local lines = {}
 
-    table.insert(lines, apply('<spec> <name> from_string(std::string_view v)', node))
-    table.insert(lines, apply('{', node))
-    table.insert(lines, apply('<indt>int  i = 0;', node))
-    table.insert(lines, apply('<indt>auto r = std::from_chars(v.begin(), v.end(), i);', node))
-    table.insert(lines, apply('<indt>if (r.ec != std::errc()) {', node))
-    table.insert(lines, apply('<indt><indt>throw std::runtime_error("Unable to convert " + std::string(v) + " into an integer.");' , node))
-    table.insert(lines, apply('<indt>}', node))
+    table.insert(lines, apply('<spec> <name> from_string(std::string_view v)'))
+    table.insert(lines, apply('{'))
+    table.insert(lines, apply('<indt>int  i = 0;'))
+    table.insert(lines, apply('<indt>auto r = std::from_chars(v.begin(), v.end(), i);'))
+    table.insert(lines, apply('<indt>if (r.ec != std::errc()) {'))
+    table.insert(lines, apply('<indt><indt>throw std::runtime_error("Unable to convert " + std::string(v) + " into an integer.");'))
+    table.insert(lines, apply('<indt>}'))
 
     if P.keepindt then
-        table.insert(lines, apply('<indt>// clang-format off', node))
+        table.insert(lines, apply('<indt>// clang-format off'))
     end
 
     local cnt = ast.count_children(node,
@@ -106,17 +106,18 @@ local function from_string_enum_impl(node)
         end
     )
 
-    table.insert(lines, apply('<indt>bool b =', node))
+    table.insert(lines, apply('<indt>bool b ='))
 
     local idx = 1
     ast.visit_children(node,
         function(n)
             if n.kind == "EnumConstant" then
-                P.cname = ast.name(n)
+                P.name  = ast.name(n)
+                P.cname = P.name
                 if idx == cnt then
-                    table.insert(lines, apply('<indt><indt>i == static_cast<std::underlying_type_t<<pnam>>>(<pnam>::<cnam>)<npad>;', n))
+                    table.insert(lines, apply('<indt><indt>i == static_cast<std::underlying_type_t<<pnam>>>(<pnam>::<cnam>)<npad>;'))
                 else
-                    table.insert(lines, apply('<indt><indt>i == static_cast<std::underlying_type_t<<pnam>>>(<pnam>::<cnam>)<npad> ||', n))
+                    table.insert(lines, apply('<indt><indt>i == static_cast<std::underlying_type_t<<pnam>>>(<pnam>::<cnam>)<npad> ||'))
                 end
                 idx = idx + 1
             end
@@ -124,15 +125,33 @@ local function from_string_enum_impl(node)
     )
 
     if P.keepindt then
-        table.insert(lines, apply('<indt><indt>// clang-format on', node))
+        table.insert(lines, apply('<indt><indt>// clang-format on'))
     end
 
-    table.insert(lines, apply('<indt>if (!b) {', node))
-    table.insert(lines, apply('<indt><indt>throw std::runtime_error("Value " + std::to_string(i) + " is outside of <pnam> enumeration range.");' , node))
-    table.insert(lines, apply('<indt>}', node))
+    table.insert(lines, apply('<indt>if (!b) {'))
+    table.insert(lines, apply('<indt><indt>throw std::runtime_error("Value " + std::to_string(i) + " is outside of <pnam> enumeration range.");'))
+    table.insert(lines, apply('<indt>}'))
 
-    table.insert(lines, apply('<indt>return static_cast<<name>>(i);' , node))
-    table.insert(lines, apply('}', node))
+    table.insert(lines, apply('<indt>return static_cast<<name>>(i);'))
+    table.insert(lines, apply('}'))
+
+    for _,l in ipairs(lines) do log.debug(l) end
+
+    return table.concat(lines,"\n")
+end
+
+-- Generate to underlying function for an enum type node - implementation.
+local function to_underlying_enum_impl(node)
+    log.trace("to_underlying_enum_impl:", ast.details(node))
+    P.llen, P.nlen = maxlen(node)
+    P.name = ast.name(node)
+
+    local lines = {}
+
+    table.insert(lines, apply('<spec> std::underlying_type_t<<name>> to_underlying(<name> e)'))
+    table.insert(lines, apply('{'))
+    table.insert(lines, apply('<indt>return std::underlying_type_t<<name>>(e);'))
+    table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
 
@@ -152,6 +171,13 @@ local function from_string_template_enum_snippet(node)
     return from_string_enum_impl(node)
 end
 
+-- Generate to underlying type conversion function snippet for an enum type node.
+local function to_underlying_enum_snippet(node)
+    log.trace("to_underlying_enum_snippet:", ast.details(node))
+    P.spec = 'inline'
+    return to_underlying_enum_impl(node)
+end
+
 -- Generate from string (member) function snippet item for an enum type node.
 local function from_string_member_enum_item(node)
     log.trace("from_string_member_enum_item:", ast.details(node))
@@ -165,7 +191,7 @@ local function from_string_member_enum_item(node)
     }
 end
 
--- Generate from string function snippet item for an enum type node.
+-- Generate from string template function snippet item for an enum type node.
 local function from_string_template_enum_item(node)
     log.trace("from_string_template_enum_item:", ast.details(node))
     return
@@ -175,6 +201,19 @@ local function from_string_template_enum_item(node)
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
         insertText       = from_string_template_enum_snippet(node)
+    }
+end
+
+-- Generate to underlying type conversion function snippet item for an enum type node.
+local function to_underlying_enum_item(node)
+    log.trace("to_underlying_enum_item:", ast.details(node))
+    return
+    {
+        label            = 'to_u',
+        kind             = cmp.lsp.CompletionItemKind.Snippet,
+        insertTextMode   = 2,
+        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+        insertText       = to_underlying_enum_snippet(node)
     }
 end
 
@@ -225,6 +264,7 @@ function M.completion_items(preceding, enclosing)
         else
             table.insert(items, from_string_template_enum_item(preceding))
         end
+        table.insert(items, to_underlying_enum_item(preceding))
     end
 
     return items
