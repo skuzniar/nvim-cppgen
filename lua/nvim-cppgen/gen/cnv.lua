@@ -132,7 +132,7 @@ local function from_string_enum_impl(node)
     table.insert(lines, apply('<indt><indt>throw std::runtime_error("Value " + std::to_string(i) + " is outside of <pnam> enumeration range.");'))
     table.insert(lines, apply('<indt>}'))
 
-    table.insert(lines, apply('<indt>return static_cast<<name>>(i);'))
+    table.insert(lines, apply('<indt>return static_cast<<pnam>>(i);'))
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
