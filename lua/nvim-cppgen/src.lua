@@ -2,7 +2,9 @@ local gen = require('nvim-cppgen.gen')
 local log = require('nvim-cppgen.log')
 
 ---------------------------------------------------------------------------------------------------
--- Code completion source module. Implements code completion source interface.
+-- Code completion source module.
+-- 1. Implements code completion source interface.
+-- 2. Implements code genration interface.
 ---------------------------------------------------------------------------------------------------
 --- Exported functions
 local M = {}
@@ -16,7 +18,7 @@ end
 --- Return whether this source is available in the current context or not (optional).
 function M:is_available()
     log.trace('is_available')
-    return gen.can_generate(vim.api.nvim_get_current_buf())
+    return gen.available(vim.api.nvim_get_current_buf())
 end
 
 --- Return the debug name of this source (optional).
@@ -75,6 +77,24 @@ function M:execute(completion_item, callback)
     callback(completion_item)
 end
 ]]
+
+---------------------------------------------------------------------------------------------------
+--- Code generation callbacks
+---------------------------------------------------------------------------------------------------
+function M.attached(client, bufnr)
+    log.trace("Attached client", client.id, "buffer", bufnr)
+	gen.attached(client, bufnr)
+end
+
+function M.insert_enter(client, bufnr)
+    log.trace("Entered insert mode client", client.id, "buffer", bufnr)
+	gen.insert_enter(client, bufnr)
+end
+
+function M.insert_leave(client, bufnr)
+    log.trace("Exited insert mode client", client.id, "buffer", bufnr)
+	gen.insert_leave(client, bufnr)
+end
 
 return M
 

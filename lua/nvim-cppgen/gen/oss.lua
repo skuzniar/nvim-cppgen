@@ -296,26 +296,43 @@ end
 
 local M = {}
 
-local function isEnum(node)
+local function is_enum(node)
     return node and node.role == "declaration" and (node.kind == "Enum" or node.kind == "Field")
 end
 
-local function isClass(node)
+local function is_class(node)
     return node and node.role == "declaration" and (node.kind == "CXXRecord" or node.kind == "Field")
 end
 
---- Returns true if the node is of interest to us
-function M.interesting(preceding, enclosing)
-    -- We can generate shift operator for preceding enumeration node and both preceding and enclosing class nodes
-    if isEnum(preceding) or isClass(preceding) or isClass(enclosing) then
-        return true
+local enclosing_node = nil
+local preceding_node = nil
+
+--- Generator will call this method before presenting set of new candidate nodes
+function M.reset()
+    enclosing_node = nil
+    preceding_node = nil
+end
+
+--- Generator will call this method with new candidate node
+function M.visit(node, line)
+    -- We can generate shift operator for enclosing class node
+    if ast.encloses(node, line) and is_class(node) then
+        enclosing_node = node
     end
-    return false
+    -- We can generate shift operator for preceding enumeration and class nodes
+    if ast.precedes(node, line) and (is_enum(node) or is_class(node)) then
+        preceding_node = node
+    end
+end
+
+--- Generator will call this method to check if the module can generate code
+function M.available()
+    return enclosing_node or preceding_node
 end
 
 -- Generate plain output stream shift operator for a class and enum nodes.
-function M.completion_items(preceding, enclosing)
-    log.trace("completion_items:", ast.details(preceding), ast.details(enclosing))
+function M.completion_items()
+    log.trace("completion_items:")
 
     P.droppfix = cfg.options.oss and cfg.options.oss.drop_prefix
     P.camelize = cfg.options.oss and cfg.options.oss.camelize
@@ -335,22 +352,22 @@ function M.completion_items(preceding, enclosing)
 
     local items = {}
 
-    if isClass(preceding) then
-        if isClass(enclosing) then
-            table.insert(items, friend_shift_class_item(preceding))
+    if is_class(preceding_node) then
+        if is_class(enclosing_node) then
+            table.insert(items, friend_shift_class_item(preceding_node))
         else
-            table.insert(items, inline_shift_class_item(preceding))
+            table.insert(items, inline_shift_class_item(preceding_node))
         end
     end
-    if isClass(enclosing) then
-        table.insert(items, friend_shift_class_item(enclosing))
+    if is_class(enclosing_node) then
+        table.insert(items, friend_shift_class_item(enclosing_node))
     end
 
-    if isEnum(preceding) then
-        if isClass(enclosing) then
-            table.insert(items, friend_shift_enum_item(preceding))
+    if is_enum(preceding_node) then
+        if is_class(enclosing_node) then
+            table.insert(items, friend_shift_enum_item(preceding_node))
         else
-            table.insert(items, inline_shift_enum_item(preceding))
+            table.insert(items, inline_shift_enum_item(preceding_node))
         end
     end
 

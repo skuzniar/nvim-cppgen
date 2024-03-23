@@ -8,15 +8,11 @@ local M = {}
 --- AST object returned by LSP server for each buffer
 local ast = {}
 
---- Relevant nodes cache for the current buffer
-local relnodes = {}
-
 --- LSP server request callback
 local function lsp_callback(bufnr, symbols)
     log.info("Received AST data with", (symbols and symbols.children and #symbols.children or 0), "top level nodes")
-    log.debug(symbols)
+    log.trace(symbols)
 	ast[bufnr] = symbols
-    relnodes[bufnr] = nil
 end
 
 --- Return node details - name and range, adjusted for line numbers starting from one.
@@ -41,18 +37,18 @@ function M.name(node)
     end
 end
 
---- Depth first traversal over AST tree with filter, pre and post order operations.
+--- Depth first traversal over AST tree with descend filter, pre and post order operations.
 function M.dfs(node, filt, pref, posf)
+    pref(node)
     if filt(node) then
-        pref(node)
         if node.children then
             for _, child in ipairs(node.children) do
 	            M.dfs(child, filt, pref, posf)
 		    end
 	    end
-        if posf then
-            posf(node)
-        end
+    end
+    if posf then
+        posf(node)
     end
 end
 
@@ -79,65 +75,53 @@ function M.count_children(node, p)
 end
 
 --- Returns true if the cursor line position is within the node's range
-local function encloses(node, line)
-    return node.range and node.range['start'].line < line and node.range['end'].line > line
+function M.encloses(node, line)
+    return not node.range or node.range['start'].line < line and node.range['end'].line > line
 end
 
 --- Returns true if the cursor line position is past the node's range
-local function precedes(node, line)
-    return node.range and node.range['end'].line < line
+function M.precedes(node, line)
+    return node.range ~= nil and node.range['end'].line < line
 end
 
---- Returns true if nodes overlay each other
-local function overlay(nodea, nodeb)
+--- Returns true if two nodes perfectly overlay each other
+function M.overlay(nodea, nodeb)
     return nodea and nodeb and nodea.range and nodeb.range and nodea.range['end'].line == nodeb.range['end'].line and nodea.range['start'].line == nodeb.range['start'].line
 end
 
---- If nodea overlays nodeb, return true if nodea precedes nodeb in terms of its type
-local function trumps(nodea, nodeb)
-    return not overlay(nodea, nodeb) or (nodea.kind == "CXXRecord" or nodea.kind == "Enum")
-end
-
 --- Returns true if the node has zero range
-local function phantom(node)
-    return node.range and node.range['end'].line == node.range['start'].line
+function M.phantom(node)
+    return node.range ~= nil and node.range['end'].line == node.range['start'].line
 end
 
---- Given the line cursor position, find smallest enclosing and closest preceding AST node
-function M.relevant_nodes(bufnr, line)
-    if relnodes[bufnr] then
-        return relnodes[bufnr]
-    end
-
+--- Scan AST and invoke callback on nodes we think may be interesting
+function M.visit_relevant_nodes(bufnr, line, callback)
     log.debug("Looking for relevant nodes in buffer", bufnr, "at line", line)
 
-    local result = {}
-    if ast[bufnr] ~= nil then
-        M.dfs(ast[bufnr],
-            function(node)
-                log.trace("Looking at node", M.details(node))
-                return not phantom(node)
-            end,
-            function(node)
-                if encloses(node, line) and trumps(node, result.enclosing) then
-                    log.debug("Found enclosing node", M.details(node))
-                    result.enclosing = node
-                end
-            end,
-            function(node)
-                if precedes(node, line) and trumps(node, result.preceding) then
-                    log.debug("Found preceding node", M.details(node))
-                    result.preceding = node
-                end
-            end
-        )
+    if ast[bufnr] == nil then
+        return false
     end
 
-    relnodes[bufnr] = result
+    M.dfs(ast[bufnr],
+        function(node)
+            log.debug("Looking at node", M.details(node), "phantom=", M.phantom(node), "encloses=", M.encloses(node, line))
+            return M.encloses(node, line)
+        end,
+        function(node)
+            if M.encloses(node, line) then
+                log.debug("Found enclosing node", M.details(node))
+                callback(node, line)
+            end
+        end,
+        function(node)
+            if M.precedes(node, line) then
+                log.debug("Found preceding node", M.details(node))
+                callback(node, line)
+            end
+        end
+    )
 
-    log.debug("Preceding =", (result.preceding and M.details(result.preceding) or result.preceding),
-              "Enclosing =", (result.enclosing and M.details(result.enclosing) or result.enclosing))
-    return result
+    return true
 end
 
 --- Make request to LSP server
@@ -172,18 +156,6 @@ local function request_ast(client, bufnr)
     return true
 end
 
---- Check if AST is present for a given buffer
-local function has_ast(bufnr)
-    log.trace("has_ast: bufnr=", bufnr)
-    return ast[bufnr] ~= nil
-end
-
---- Clear AST for a given buffer
-local function clear_ast(bufnr)
-    log.trace("clear_ast: bufnr =", bufnr)
-    ast[bufnr] = nil
-end
-
 ---------------------------------------------------------------------------------------------------
 --- Code generation callbacks
 ---------------------------------------------------------------------------------------------------
@@ -192,13 +164,12 @@ function M.attached(client, bufnr)
 end
 
 function M.insert_enter(client, bufnr)
-    log.trace("Entered insert mode in buffer", bufnr)
-    relnodes[bufnr] = nil
+    log.trace("Entered insert mode client", client.id, "buffer", bufnr)
     request_ast(client, bufnr)
 end
 
 function M.insert_leave(client, bufnr)
-    log.trace("Exited insert mode in buffer", bufnr)
+    log.trace("Exited insert mode client", client.id, "buffer", bufnr)
 end
 
 return M

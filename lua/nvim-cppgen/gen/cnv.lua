@@ -219,26 +219,39 @@ end
 
 local M = {}
 
-local function isEnum(node)
+local function is_enum(node)
     return node and node.role == "declaration" and (node.kind == "Enum" or node.kind == "Field")
 end
 
-local function isClass(node)
+local function is_class(node)
     return node and node.role == "declaration" and (node.kind == "CXXRecord" or node.kind == "Field")
 end
 
---- Returns true if the node is of interest to us
-function M.interesting(preceding, _)
+local enclosing_node = nil
+local preceding_node = nil
+
+--- Generator will call this method before presenting set of new candidate nodes
+function M.reset()
+    enclosing_node = nil
+    preceding_node = nil
+end
+
+--- Generator will call this method with new candidate node
+function M.visit(node, line)
     -- We can generate conversion function for preceding enumeration node
-    if isEnum(preceding) then
-        return true
+    if ast.precedes(node, line) and is_enum(node) then
+        preceding_node = node
     end
-    return false
+end
+
+--- Generator will call this method to check if the module can generate code
+function M.available()
+    return enclosing_node or preceding_node
 end
 
 -- Generate from string functions for an enum nodes.
-function M.completion_items(preceding, enclosing)
-    log.trace("completion_items:", ast.details(preceding), ast.details(enclosing))
+function M.completion_items()
+    log.trace("completion_items:", ast.details(preceding_node), ast.details(enclosing_node))
 
     P.droppfix = cfg.options.cnv and cfg.options.cnv.drop_prefix
     P.camelize = cfg.options.cnv and cfg.options.cnv.camelize
@@ -258,13 +271,13 @@ function M.completion_items(preceding, enclosing)
 
     local items = {}
 
-    if isEnum(preceding) then
-        if isClass(enclosing) then
-            table.insert(items, from_string_member_enum_item(preceding))
+    if is_enum(preceding_node) then
+        if is_class(enclosing_node) then
+            table.insert(items, from_string_member_enum_item(preceding_node))
         else
-            table.insert(items, from_string_template_enum_item(preceding))
+            table.insert(items, from_string_template_enum_item(preceding_node))
         end
-        table.insert(items, to_underlying_enum_item(preceding))
+        table.insert(items, to_underlying_enum_item(preceding_node))
     end
 
     return items

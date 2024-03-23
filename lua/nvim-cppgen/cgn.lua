@@ -4,7 +4,7 @@ local src = require('nvim-cppgen.src')
 local log = require('nvim-cppgen.log')
 
 ---------------------------------------------------------------------------------------------------
--- Code generation module. Forwards events to the ast module. Acts as a completion source.
+-- Code generation module. Forwards events to the dependent modules. Acts as a completion source.
 ---------------------------------------------------------------------------------------------------
 local M = {}
 
@@ -13,23 +13,26 @@ function M.attached(client, bufnr)
     log.trace("Attached client", client.id, "buffer", bufnr)
 	ast.attached(client, bufnr)
 	ctx.attached(client, bufnr)
+	src.attached(client, bufnr)
 end
 
 --- Callback invoked when we enter insert mode in the buffer attached to a LSP client
 function M.insert_enter(client, bufnr)
-    log.trace("Entered insert mode in buffer", bufnr)
+    log.trace("Entered insert mode client", client.id, "buffer", bufnr)
 	ast.insert_enter(client, bufnr)
 	ctx.insert_enter(client, bufnr)
+	src.insert_enter(client, bufnr)
 end
 
 --- Callback invoked when we leave insert mode in the buffer attached to a LSP client
 function M.insert_leave(client, bufnr)
-    log.trace("Exited insert mode in buffer", bufnr)
+    log.trace("Exited insert mode client", client.id, "buffer", bufnr)
 	ast.insert_leave(client, bufnr)
 	ctx.insert_leave(client, bufnr)
+	src.insert_leave(client, bufnr)
 end
 
---- Generator is a source for the code completion engine
+--- Code generator is a source for the completion engine
 function M.source()
     log.trace("source")
     return src.new()
