@@ -220,11 +220,11 @@ end
 local M = {}
 
 local function is_enum(node)
-    return node and node.role == "declaration" and (node.kind == "Enum" or node.kind == "Field")
+    return node and node.role == "declaration" and node.kind == "Enum"
 end
 
 local function is_class(node)
-    return node and node.role == "declaration" and (node.kind == "CXXRecord" or node.kind == "Field")
+    return node and node.role == "declaration" and node.kind == "CXXRecord"
 end
 
 local enclosing_node = nil
@@ -240,6 +240,7 @@ end
 function M.visit(node, line)
     -- We can generate conversion function for preceding enumeration node
     if ast.precedes(node, line) and is_enum(node) then
+        log.debug("visit:", "Acepted preceding node", ast.details(node))
         preceding_node = node
     end
 end

@@ -297,11 +297,11 @@ end
 local M = {}
 
 local function is_enum(node)
-    return node and node.role == "declaration" and (node.kind == "Enum" or node.kind == "Field")
+    return node and node.role == "declaration" and node.kind == "Enum"
 end
 
 local function is_class(node)
-    return node and node.role == "declaration" and (node.kind == "CXXRecord" or node.kind == "Field")
+    return node and node.role == "declaration" and node.kind == "CXXRecord"
 end
 
 local enclosing_node = nil
@@ -317,10 +317,12 @@ end
 function M.visit(node, line)
     -- We can generate shift operator for enclosing class node
     if ast.encloses(node, line) and is_class(node) then
+        log.debug("visit:", "Acepted enclosing node", ast.details(node))
         enclosing_node = node
     end
     -- We can generate shift operator for preceding enumeration and class nodes
     if ast.precedes(node, line) and (is_enum(node) or is_class(node)) then
+        log.debug("visit:", "Acepted preceding node", ast.details(node))
         preceding_node = node
     end
 end
