@@ -46,6 +46,10 @@ Neovim C++ code generator.
         -- Conversion functions generator
         cnv = {
             -- Nothing yet
+        },
+        -- JSON serialization using cereal library
+        cereal = {
+            -- Nothing yet
         }
     }
 }
