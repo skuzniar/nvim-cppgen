@@ -7,9 +7,11 @@ local log = require('nvim-cppgen.log')
 -- 2. Reacts to editor mode changes to cache results.
 ---------------------------------------------------------------------------------------------------
 
+-- TODO - populate during configuration
 local G = {
     require('nvim-cppgen.gen.oss'),
-    require('nvim-cppgen.gen.cnv')
+    require('nvim-cppgen.gen.cnv'),
+    require('nvim-cppgen.gen.cereal')
 }
 
 --- Keep track of results
