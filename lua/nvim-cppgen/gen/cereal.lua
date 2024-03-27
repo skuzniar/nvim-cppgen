@@ -120,9 +120,9 @@ local function save_class_snippet(node, specifier)
         P.labelpad  = string.rep(' ', maxllen - string.len(r.label))
         P.valuepad  = string.rep(' ', maxvlen - string.len(r.value))
         if idx == #records then
-            table.insert(lines, apply('<indent><indent>cereal::make_nvp("<label>"<labelpad>, <value>)'))
+            table.insert(lines, apply('<indent><indent>cereal::make_nvp("<label>",<labelpad> <value>)'))
         else
-            table.insert(lines, apply('<indent><indent>cereal::make_nvp("<label>"<labelpad>, <value>),'))
+            table.insert(lines, apply('<indent><indent>cereal::make_nvp("<label>",<labelpad> <value>),'))
         end
         idx = idx + 1
     end
