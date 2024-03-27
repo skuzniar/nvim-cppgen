@@ -1,12 +1,11 @@
 # Nvim-cppgen
-Neovim C++ code generator. Currently can generate output stream operators for classes and enumerations.
+Neovim C++ code generator.
 
 ## Install
 
 ```txt
 {
-    --"skuzniar/nvim-cppgen",
-    dir = "/Users/slawomir/dvlp/nvim-cppgen",
+    "skuzniar/nvim-cppgen",
     dependencies = {
         "neovim/nvim-lspconfig"
     },
@@ -14,36 +13,41 @@ Neovim C++ code generator. Currently can generate output stream operators for cl
     {
         log = {
             plugin      = 'nvim-cppgen',
-            level       = 'info',
+            level       = 'debug',
             use_console = false
         },
+
+        indent     = '    ',
+        keepindent = true,
         -- Output Stream Shift operator generator
         oss = {
-            drop_prefix      = true,
-            camelize         = true,
-            keep_indentation = false,
-            indentation      = '    ',
-            equal_sign       = ': ',
-            field_separator  = "' '",
-            print_class_name = [['[' << "<name>" << ']' << '=']]
-
-            --[[
-            class ClassName
-            {
-                std::string m_first_name;
-
-                friend std::ostream& operator<<(std::ostream& s, const Name& o)
-                {
-                    // clang-format off
-                    s << '[' << "ClassName" << ']' << '=';
-                    s << "FirstName: " << o.m_first_name << ' ';
-                    // clang-format on
-                    return s;
-                }
-            };
-            ]]
+            class = {
+                separator = "' '",
+                preamble  = function(classname)
+                    return '[' .. classname .. ']='
+                end,
+                label = function(classname, fieldname, camelized)
+                    return camelized .. ': '
+                end,
+                value = function(fieldref)
+                    return fieldref
+                end
+            },
+            enum = {
+                value = function(mnemonic, value)
+                    if (value) then
+                        return '"' .. value .. '(' .. mnemonic .. ')' .. '"'
+                    else
+                        return '"' .. mnemonic .. '"'
+                    end
+                end
+            },
+        },
+        -- Conversion functions generator
+        cnv = {
+            -- Nothing yet
         }
-    },
+    }
 }
 ```
 
