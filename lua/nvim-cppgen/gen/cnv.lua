@@ -9,95 +9,72 @@ local cmp = require('cmp')
 ---------------------------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------------------------
+-- Global parameters for code generation.
+---------------------------------------------------------------------------------------------------
+local G = {}
+
+G.indent     = '    '
+G.keepindent = true
+
+---------------------------------------------------------------------------------------------------
 -- Parameters
 ---------------------------------------------------------------------------------------------------
 local P = {}
 
-P.droppfix = false
 P.camelize = false
 P.indt     = '   '
 P.equalsgn = ': '
 P.fieldsep = "' '"
 
-local function capitalize(s)
-    return (string.gsub(s, '^%l', string.upper))
-end
-
-local function camelize(s)
-    return (string.gsub(s, '%W*(%w+)', capitalize))
-end
-
-local function label(name)
-    if P.droppfix then
-        name = string.gsub(name, '^%a_', '')
-    end
-    if P.camelize then
-        name = camelize(name)
-    end
-
-    return name
-end
-
--- Calculate the longest length of the childe's label and name
-local function maxlen(node)
-    local max_lab_len = 0
+-- Calculate the longest length of the childe's name
+local function max_length(node)
     local max_nam_len = 0
-
     ast.visit_children(node,
         function(n)
             if n.kind == "EnumConstant" or n.kind == "Field" then
-                max_lab_len = math.max(max_lab_len, string.len(label(ast.name(n))))
                 max_nam_len = math.max(max_nam_len, string.len(ast.name(n)))
             end
         end
     )
-    return max_lab_len, max_nam_len
+    return max_nam_len
 end
 
--- Apply global parameters to the format string 
+-- Apply parameters to the format string 
 local function apply(format)
-    local npad = string.rep(' ', P.nlen - string.len(P.name))
-    local spec = P.spec or ''
-
     local result  = format
 
-    result = string.gsub(result, "<spec>", spec)
-    result = string.gsub(result, "<name>", P.name)
-    result = string.gsub(result, "<indt>", P.indt)
-    result = string.gsub(result, "<npad>", npad)
-    result = string.gsub(result, "<eqls>", P.equalsgn)
-    result = string.gsub(result, "<fsep>", P.fieldsep)
-
-    if (P.pname) then
-        result = string.gsub(result, "<pnam>", P.pname)
-    end
-    if (P.cname) then
-        result = string.gsub(result, "<cnam>", P.cname)
-    end
+    result = string.gsub(result, "<specifier>", P.specifier or '')
+    result = string.gsub(result, "<classname>", P.classname or '')
+    result = string.gsub(result, "<fieldname>", P.fieldname or '')
+    result = string.gsub(result, "<fieldpad>",  P.fieldpad  or '')
+    result = string.gsub(result, "<separator>", P.separator or '')
+    result = string.gsub(result, "<indent>",    P.indent    or '')
 
     return result;
 end
 
 -- Generate from string function for an enum type node - implementation.
-local function from_string_enum_impl(node)
+local function from_string_enum_impl(node, specifier)
     log.trace("from_string_enum_impl:", ast.details(node))
-    P.llen, P.nlen = maxlen(node)
 
-    P.name  = ast.name(node)
-    P.pname = P.name
+    P.specifier = specifier
+    P.classname = ast.name(node)
+    P.indent    = G.indent
+
+    local maxflen = max_length(node)
 
     local lines = {}
 
-    table.insert(lines, apply('<spec> <name> from_string(std::string_view v)'))
+    table.insert(lines, apply('<specifier> <classname> from_string(std::string_view v)'))
     table.insert(lines, apply('{'))
-    table.insert(lines, apply('<indt>int  i = 0;'))
-    table.insert(lines, apply('<indt>auto r = std::from_chars(v.begin(), v.end(), i);'))
-    table.insert(lines, apply('<indt>if (r.ec != std::errc()) {'))
-    table.insert(lines, apply('<indt><indt>throw std::runtime_error("Unable to convert " + std::string(v) + " into an integer.");'))
-    table.insert(lines, apply('<indt>}'))
+    table.insert(lines, apply('<indent>int  i = 0;'))
+    table.insert(lines, apply('<indent>auto r = std::from_chars(v.begin(), v.end(), i);'))
+    table.insert(lines, apply('<indent>if (r.ec != std::errc()) {'))
+    table.insert(lines, apply('<indent><indent>throw std::runtime_error("Unable to convert " + std::string(v) + " into an integer.");'))
+    table.insert(lines, apply('<indent>}'))
 
-    if P.keepindt then
-        table.insert(lines, apply('<indt>// clang-format off'))
+    if G.keepindent then
+        table.insert(lines, apply('<indent>// clang-format off'))
     end
 
     local cnt = ast.count_children(node,
@@ -106,33 +83,33 @@ local function from_string_enum_impl(node)
         end
     )
 
-    table.insert(lines, apply('<indt>bool b ='))
+    table.insert(lines, apply('<indent>bool b ='))
 
     local idx = 1
     ast.visit_children(node,
         function(n)
             if n.kind == "EnumConstant" then
-                P.name  = ast.name(n)
-                P.cname = P.name
+                P.fieldname = ast.name(n)
+                P.fieldpad  = string.rep(' ', maxflen - string.len(P.fieldname))
                 if idx == cnt then
-                    table.insert(lines, apply('<indt><indt>i == static_cast<std::underlying_type_t<<pnam>>>(<pnam>::<cnam>)<npad>;'))
+                    table.insert(lines, apply('<indent><indent>i == static_cast<std::underlying_type_t<<classname>>>(<classname>::<fieldname>)<fieldpad>;'))
                 else
-                    table.insert(lines, apply('<indt><indt>i == static_cast<std::underlying_type_t<<pnam>>>(<pnam>::<cnam>)<npad> ||'))
+                    table.insert(lines, apply('<indent><indent>i == static_cast<std::underlying_type_t<<classname>>>(<classname>::<fieldname>)<fieldpad> ||'))
                 end
                 idx = idx + 1
             end
         end
     )
 
-    if P.keepindt then
-        table.insert(lines, apply('<indt><indt>// clang-format on'))
+    if G.keepindent then
+        table.insert(lines, apply('<indent>// clang-format on'))
     end
 
-    table.insert(lines, apply('<indt>if (!b) {'))
-    table.insert(lines, apply('<indt><indt>throw std::runtime_error("Value " + std::to_string(i) + " is outside of <pnam> enumeration range.");'))
-    table.insert(lines, apply('<indt>}'))
+    table.insert(lines, apply('<indent>if (!b) {'))
+    table.insert(lines, apply('<indent><indent>throw std::runtime_error("Value " + std::to_string(i) + " is outside of <classname> enumeration range.");'))
+    table.insert(lines, apply('<indent>}'))
 
-    table.insert(lines, apply('<indt>return static_cast<<pnam>>(i);'))
+    table.insert(lines, apply('<indent>return static_cast<<classname>>(i);'))
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
@@ -141,16 +118,18 @@ local function from_string_enum_impl(node)
 end
 
 -- Generate to underlying function for an enum type node - implementation.
-local function to_underlying_enum_impl(node)
+local function to_underlying_enum_impl(node, specifier)
     log.trace("to_underlying_enum_impl:", ast.details(node))
-    P.llen, P.nlen = maxlen(node)
-    P.name = ast.name(node)
+
+    P.specifier = specifier
+    P.classname = ast.name(node)
+    P.indent    = G.indent
 
     local lines = {}
 
-    table.insert(lines, apply('<spec> std::underlying_type_t<<name>> to_underlying(<name> e)'))
+    table.insert(lines, apply('<specifier> std::underlying_type_t<<classname>> to_underlying(<classname> e)'))
     table.insert(lines, apply('{'))
-    table.insert(lines, apply('<indt>return std::underlying_type_t<<name>>(e);'))
+    table.insert(lines, apply('<indent>return std::underlying_type_t<<classname>>(e);'))
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
@@ -161,21 +140,18 @@ end
 -- Generate from string function snippet for an enum type node.
 local function from_string_member_enum_snippet(node)
     log.trace("from_string_member_enum_snippet:", ast.details(node))
-    P.spec = 'static'
-    return from_string_enum_impl(node)
+    return from_string_enum_impl(node, 'static')
 end
 
 local function from_string_template_enum_snippet(node)
     log.trace("from_string_template_enum_snippet:", ast.details(node))
-    P.spec = 'template <> inline'
-    return from_string_enum_impl(node)
+    return from_string_enum_impl(node, 'template <> inline')
 end
 
 -- Generate to underlying type conversion function snippet for an enum type node.
 local function to_underlying_enum_snippet(node)
     log.trace("to_underlying_enum_snippet:", ast.details(node))
-    P.spec = 'inline'
-    return to_underlying_enum_impl(node)
+    return to_underlying_enum_impl(node, 'inline')
 end
 
 -- Generate from string (member) function snippet item for an enum type node.
@@ -254,20 +230,13 @@ end
 function M.completion_items()
     log.trace("completion_items:", ast.details(preceding_node), ast.details(enclosing_node))
 
-    P.droppfix = cfg.options.cnv and cfg.options.cnv.drop_prefix
-    P.camelize = cfg.options.cnv and cfg.options.cnv.camelize
-    P.keepindt = cfg.options.cnv and cfg.options.cnv.keep_indentation
-    if cfg.options.cnv and cfg.options.cnv.indentation then
-        P.indt = cfg.options.cnv.indentation
-    end
-    if cfg.options.cnv and cfg.options.cnv.equal_sign then
-        P.equalsgn = cfg.options.cnv.equal_sign
-    end
-    if cfg.options.cnv and cfg.options.cnv.field_separator then
-        P.fieldsep = cfg.options.cnv.field_separator
-    end
-    if cfg.options.cnv and cfg.options.cnv.print_class_name then
-        P.printcname = cfg.options.cnv.print_class_name
+    if cfg.options then
+        if cfg.options.indent then
+            G.indent = cfg.options.indent
+        end
+        if cfg.options.keepindent then
+            G.keepindent = cfg.options.keepindent
+        end
     end
 
     local items = {}

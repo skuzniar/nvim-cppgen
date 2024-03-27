@@ -9,37 +9,36 @@ local cmp = require('cmp')
 ---------------------------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------------------------
--- Parameters
+-- Global parameters for code generation.
 ---------------------------------------------------------------------------------------------------
-local P = {}
+local G = {}
 
-P.droppfix = false
-P.camelize = false
-P.indt     = '   '
-P.equalsgn = ': '
-P.fieldsep = "' '"
+G.indent     = '    '
+G.keepindent = true
 
-local function capitalize(s)
-    return (string.gsub(s, '^%l', string.upper))
+---------------------------------------------------------------------------------------------------
+-- Class specific parameters
+---------------------------------------------------------------------------------------------------
+G.class = {}
+G.class.separator = "' '"
+
+-- Create the string that will be printed before any member fierlds.
+G.class.preamble = function(classname)
+    return '[' .. classname .. ']='
 end
 
-local function camelize(s)
-    return (string.gsub(s, '%W*(%w+)', capitalize))
+-- Create the label string for the member field. By default we use camelized name.
+G.class.label = function(classname, fieldname, camelized)
+    return camelized .. ': '
 end
 
-local function label(name)
-    if P.droppfix then
-        name = string.gsub(name, '^%a_', '')
-    end
-    if P.camelize then
-        name = camelize(name)
-    end
-
-    return name
+-- Create the value string for the member field. By default we use field reference
+G.class.value = function(fieldref)
+    return fieldref
 end
 
 -- Calculate the longest length of labels and values
-local function maxlens(records)
+local function max_lengths(records)
     local max_lab_len = 0
     local max_val_len = 0
 
@@ -50,35 +49,47 @@ local function maxlens(records)
     return max_lab_len, max_val_len
 end
 
--- Apply global parameters to the format string 
-local function apply(format)
-    local lpad = string.rep(' ', P.llen - string.len(P.labl))
-    local vpad = string.rep(' ', P.vlen - string.len(P.valu))
+local function capitalize(s)
+    return (string.gsub(s, '^%l', string.upper))
+end
 
+local function camelize(s)
+    s = string.gsub(s, '^%a_', '')
+    return (string.gsub(s, '%W*(%w+)', capitalize))
+end
+
+---------------------------------------------------------------------------------------------------
+-- Local parameters for code generation.
+---------------------------------------------------------------------------------------------------
+local P = {}
+
+-- Apply parameters to the format string 
+local function apply(format)
     local result  = format
 
-    result = string.gsub(result, "<spec>", P.spec or '')
-    result = string.gsub(result, "<name>", P.name)
-    result = string.gsub(result, "<labl>", P.labl)
-    result = string.gsub(result, "<valu>", P.valu)
-    result = string.gsub(result, "<indt>", P.indt)
-    result = string.gsub(result, "<lpad>", lpad)
-    result = string.gsub(result, "<vpad>", vpad)
-    result = string.gsub(result, "<eqls>", P.equalsgn)
-    result = string.gsub(result, "<fsep>", P.fieldsep)
+    result = string.gsub(result, "<label>",     P.label     or '')
+    result = string.gsub(result, "<labelpad>",  P.labelpad  or '')
+    result = string.gsub(result, "<value>",     P.value     or '')
+    result = string.gsub(result, "<valuepad>",  P.valuepad  or '')
+    result = string.gsub(result, "<specifier>", P.specifier or '')
+    result = string.gsub(result, "<classname>", P.classname or '')
+    result = string.gsub(result, "<fieldname>", P.fieldname or '')
+    result = string.gsub(result, "<separator>", P.separator or '')
+    result = string.gsub(result, "<indent>",    P.indent    or '')
 
     return result;
 end
 
 -- Collect names and values for a class type node.
-local function class_labels_and_values(node)
+local function class_labels_and_values(node, object)
     local records = {}
     ast.visit_children(node,
         function(n)
             if n.kind == "Field" then
                 local record = {}
-                record.label = label(ast.name(n))
-                record.value = ast.name(n)
+                record.field = ast.name(n)
+                record.label = G.class.label(ast.name(node), record.field, camelize(record.field))
+                record.value = G.class.value(object .. '.' .. record.field)
                 table.insert(records, record)
             end
         end
@@ -86,45 +97,51 @@ local function class_labels_and_values(node)
     return records
 end
 
+---------------------------------------------------------------------------------------------------
 -- Generate output stream shift operator for a class type node.
-local function shift_class_impl(node)
-    log.debug("shift_class_impl:", ast.details(node))
+---------------------------------------------------------------------------------------------------
+local function shift_class_snippet(node, specifier)
+    log.debug("shift_class_snippet:", ast.details(node))
 
-    P.name = ast.name(node)
-    P.labl = ''
-    P.valu = ''
+    P.specifier = specifier
+    P.classname = ast.name(node)
+    P.separator = G.class.separator
+    P.indent    = G.indent
 
-    local records  = class_labels_and_values(node)
-    P.llen, P.vlen = maxlens(records)
+    local records = class_labels_and_values(node, 'o')
+    local maxllen, maxvlen = max_lengths(records)
 
     local lines = {}
 
-    table.insert(lines, apply('<spec> std::ostream& operator<<(std::ostream& s, const <name>& o)'))
+    table.insert(lines, apply('<specifier> std::ostream& operator<<(std::ostream& s, const <classname>& o)'))
     table.insert(lines, apply('{'))
-    if P.keepindt then
-        table.insert(lines, apply('<indt>// clang-format off'))
+    if G.keepindent then
+        table.insert(lines, apply('<indent>// clang-format off'))
     end
 
-    if P.printcname then
-        table.insert(lines, apply([[<indt>s << ]] .. P.printcname .. [[;]]))
+    if G.class.preamble then
+        table.insert(lines, apply('<indent>s << "' .. G.class.preamble(P.classname) .. '";'))
     end
 
     local idx = 1
     for _,r in ipairs(records) do
-        P.labl = r.label
-        P.valu = r.value
+        P.fieldname = r.field
+        P.label     = r.label
+        P.value     = r.value
+        P.labelpad  = string.rep(' ', maxllen - string.len(r.label))
+        P.valuepad  = string.rep(' ', maxvlen - string.len(r.value))
         if idx == #records then
-            table.insert(lines, apply([[<indt>s << "<labl><eqls>"<lpad> << o.<valu>;]]))
+            table.insert(lines, apply('<indent>s << "<label>"<labelpad> << <value>;'))
         else
-            table.insert(lines, apply([[<indt>s << "<labl><eqls>"<lpad> << o.<valu><vpad> << <fsep>;]]))
+            table.insert(lines, apply('<indent>s << "<label>"<labelpad> << <value><valuepad> << <separator>;'))
         end
         idx = idx + 1
     end
 
-    if P.keepindt then
-        table.insert(lines, apply('<indt>// clang-format on'))
+    if G.keepindent then
+        table.insert(lines, apply('<indent>// clang-format on'))
     end
-    table.insert(lines, apply('<indt>return s;'))
+    table.insert(lines, apply('<indent>return s;'))
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
@@ -135,15 +152,13 @@ end
 -- Generate output stream friend shift operator snippet for a class type node.
 local function friend_shift_class_snippet(node)
     log.trace("friend_shift_class_snippet:", ast.details(node))
-    P.spec = 'friend'
-    return shift_class_impl(node)
+    return shift_class_snippet(node, 'friend')
 end
 
 -- Generate output stream inline shift operator snippet for a class type node.
 local function inline_shift_class_snippet(node)
     log.trace("inline_shift_class_snippet:", ast.details(node))
-    P.spec = 'inline'
-    return shift_class_impl(node)
+    return shift_class_snippet(node, 'inline')
 end
 
 -- Generate output stream friend shift operator completion item for a class type node.
@@ -170,6 +185,20 @@ local function inline_shift_class_item(node)
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
         insertText       = inline_shift_class_snippet(node)
     }
+end
+
+---------------------------------------------------------------------------------------------------
+-- Enum specific parameters
+---------------------------------------------------------------------------------------------------
+G.enum = {}
+
+-- Create the value string for the member field. By default we use both, the value and mnemonic
+G.enum.value = function(mnemonic, value)
+    if (value) then
+        return '"' .. value .. '(' .. mnemonic .. ')' .. '"'
+    else
+        return '"' .. mnemonic .. '"'
+    end
 end
 
 -- Attempt to find integral constant for the enum element
@@ -200,13 +229,7 @@ local function enum_labels_and_values(node)
             if n.kind == "EnumConstant" then
                 local record = {}
                 record.label = ast.name(node) .. '::' .. ast.name(n)
-                local lit = integral_literal(n)
-                if (lit) then
-                    record.value = '"' .. lit .. '(' .. ast.name(n) .. ')' .. '"'
-                else
-                    record.value = '"' .. ast.name(n) .. '"'
-                end
-
+                record.value = G.enum.value(ast.name(n), integral_literal(n))
                 table.insert(records, record)
             end
         end
@@ -214,39 +237,43 @@ local function enum_labels_and_values(node)
     return records
 end
 
+---------------------------------------------------------------------------------------------------
 -- Generate output stream shift operator for an enum type node.
-local function shift_enum_impl(node)
-    log.trace("shift_enum_impl:", ast.details(node))
+---------------------------------------------------------------------------------------------------
+local function shift_enum_snippet(node, specifier)
+    log.trace("shift_enum_snippet:", ast.details(node))
 
-    P.name = ast.name(node)
-    P.labl = ''
-    P.valu = ''
+    P.specifier = specifier
+    P.classname = ast.name(node)
+    P.indent    = G.indent
 
-    local records  = enum_labels_and_values(node)
-    P.llen, P.vlen = maxlens(records)
+    local records = enum_labels_and_values(node)
+    local maxllen, maxvlen = max_lengths(records)
 
     local lines = {}
 
-    table.insert(lines, apply('<spec> std::ostream& operator<<(std::ostream& s, <name> o)'))
+    table.insert(lines, apply('<specifier> std::ostream& operator<<(std::ostream& s, <classname> o)'))
     table.insert(lines, apply('{'))
-    table.insert(lines, apply('<indt>switch(o)'))
-    table.insert(lines, apply('<indt>{'))
-    if P.keepindt then
-        table.insert(lines, apply('<indt><indt>// clang-format off'))
+    table.insert(lines, apply('<indent>switch(o)'))
+    table.insert(lines, apply('<indent>{'))
+    if G.keepindent then
+        table.insert(lines, apply('<indent><indent>// clang-format off'))
     end
 
     for _,r in ipairs(records) do
-        P.labl = r.label
-        P.valu = r.value
-        table.insert(lines, apply('<indt><indt>case <labl>:<lpad> s << <valu>;<vpad> break;'))
+        P.label     = r.label
+        P.value     = r.value
+        P.labelpad  = string.rep(' ', maxllen - string.len(r.label))
+        P.valuepad  = string.rep(' ', maxvlen - string.len(r.value))
+        table.insert(lines, apply('<indent><indent>case <label>:<labelpad> s << <value>;<valuepad> break;'))
     end
 
-    if P.keepindt then
-        table.insert(lines, apply('<indt><indt>// clang-format on'))
+    if G.keepindent then
+        table.insert(lines, apply('<indent><indent>// clang-format on'))
     end
-    table.insert(lines, apply('<indt>};'))
+    table.insert(lines, apply('<indent>};'))
 
-    table.insert(lines, apply('<indt>return s;'))
+    table.insert(lines, apply('<indent>return s;'))
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
@@ -257,15 +284,13 @@ end
 -- Generate output stream friend shift operator snippet for an enum type node.
 local function friend_shift_enum_snippet(node)
     log.trace("friend_shift_enum_snippet:", ast.details(node))
-    P.spec = 'friend'
-    return shift_enum_impl(node)
+    return shift_enum_snippet(node, 'friend')
 end
 
 -- Generate output stream inline shift operator snippet for an enum type node.
 local function inline_shift_enum_snippet(node)
     log.trace("inline_shift_enum_snippet:", ast.details(node))
-    P.spec = 'inline'
-    return shift_enum_impl(node)
+    return shift_enum_snippet(node, 'inline')
 end
 
 -- Generate output stream friend shift operator completion item for an enum type node.
@@ -336,20 +361,34 @@ end
 function M.completion_items()
     log.trace("completion_items:")
 
-    P.droppfix = cfg.options.oss and cfg.options.oss.drop_prefix
-    P.camelize = cfg.options.oss and cfg.options.oss.camelize
-    P.keepindt = cfg.options.oss and cfg.options.oss.keep_indentation
-    if cfg.options.oss and cfg.options.oss.indentation then
-        P.indt = cfg.options.oss.indentation
+    if cfg.options then
+        if cfg.options.indent then
+            G.indent = cfg.options.indent
+        end
+        if cfg.options.keepindent then
+            G.keepindent = cfg.options.keepindent
+        end
     end
-    if cfg.options.oss and cfg.options.oss.equal_sign then
-        P.equalsgn = cfg.options.oss.equal_sign
+
+    if cfg.options.oss and cfg.options.oss.class then
+        if cfg.options.oss.class.separator then
+            G.class.separator = cfg.options.oss.class.separator
+        end
+        if cfg.options.oss.class.preamble then
+            G.class.preamble = cfg.options.oss.class.preamble
+        end
+        if cfg.options.oss.class.label then
+            G.class.label = cfg.options.oss.class.label
+        end
+        if cfg.options.oss.class.value then
+            G.class.value = cfg.options.oss.class.value
+        end
     end
-    if cfg.options.oss and cfg.options.oss.field_separator then
-        P.fieldsep = cfg.options.oss.field_separator
-    end
-    if cfg.options.oss and cfg.options.oss.print_class_name then
-        P.printcname = cfg.options.oss.print_class_name
+
+    if cfg.options.oss and cfg.options.oss.enum then
+        if cfg.options.oss.enum.value then
+            G.enum.value = cfg.options.oss.enum.value
+        end
     end
 
     local items = {}
