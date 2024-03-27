@@ -8,6 +8,12 @@ local log = require('nvim-cppgen.log')
 ---------------------------------------------------------------------------------------------------
 local M = {}
 
+--- Initialization callback
+function M.setup(opts)
+    -- Pass the configuration to the snippet source
+    src.setup(opts)
+end
+
 --- Callback invoked when the LSP client has been attache to the buffer
 function M.attached(client, bufnr)
     log.trace("Attached client", client.id, "buffer", bufnr)

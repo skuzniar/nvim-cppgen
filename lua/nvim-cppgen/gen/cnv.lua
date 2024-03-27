@@ -1,5 +1,4 @@
 local ast = require('nvim-cppgen.ast')
-local cfg = require('nvim-cppgen.cfg')
 local log = require('nvim-cppgen.log')
 
 local cmp = require('cmp')
@@ -230,15 +229,6 @@ end
 function M.completion_items()
     log.trace("completion_items:", ast.details(preceding_node), ast.details(enclosing_node))
 
-    if cfg.options then
-        if cfg.options.indent then
-            G.indent = cfg.options.indent
-        end
-        if cfg.options.keepindent then
-            G.keepindent = cfg.options.keepindent
-        end
-    end
-
     local items = {}
 
     if is_enum(preceding_node) then
@@ -251,6 +241,20 @@ function M.completion_items()
     end
 
     return items
+end
+
+---------------------------------------------------------------------------------------------------
+--- Initialization callback
+---------------------------------------------------------------------------------------------------
+function M.setup(opts)
+    if opts then
+        if opts.indent then
+            G.indent = opts.indent
+        end
+        if opts.keepindent then
+            G.keepindent = opts.keepindent
+        end
+    end
 end
 
 return M

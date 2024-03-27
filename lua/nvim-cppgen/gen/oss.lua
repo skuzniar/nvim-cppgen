@@ -1,5 +1,4 @@
 local ast = require('nvim-cppgen.ast')
-local cfg = require('nvim-cppgen.cfg')
 local log = require('nvim-cppgen.log')
 
 local cmp = require('cmp')
@@ -361,36 +360,6 @@ end
 function M.completion_items()
     log.trace("completion_items:")
 
-    if cfg.options then
-        if cfg.options.indent then
-            G.indent = cfg.options.indent
-        end
-        if cfg.options.keepindent then
-            G.keepindent = cfg.options.keepindent
-        end
-    end
-
-    if cfg.options.oss and cfg.options.oss.class then
-        if cfg.options.oss.class.separator then
-            G.class.separator = cfg.options.oss.class.separator
-        end
-        if cfg.options.oss.class.preamble then
-            G.class.preamble = cfg.options.oss.class.preamble
-        end
-        if cfg.options.oss.class.label then
-            G.class.label = cfg.options.oss.class.label
-        end
-        if cfg.options.oss.class.value then
-            G.class.value = cfg.options.oss.class.value
-        end
-    end
-
-    if cfg.options.oss and cfg.options.oss.enum then
-        if cfg.options.oss.enum.value then
-            G.enum.value = cfg.options.oss.enum.value
-        end
-    end
-
     local items = {}
 
     if is_class(preceding_node) then
@@ -413,6 +382,41 @@ function M.completion_items()
     end
 
     return items
+end
+
+---------------------------------------------------------------------------------------------------
+--- Initialization callback
+---------------------------------------------------------------------------------------------------
+function M.setup(opts)
+    if opts then
+        if opts.indent then
+            G.indent = opts.indent
+        end
+        if opts.keepindent then
+            G.keepindent = opts.keepindent
+        end
+    end
+
+    if opts.oss and opts.oss.class then
+        if opts.oss.class.separator then
+            G.class.separator = opts.oss.class.separator
+        end
+        if opts.oss.class.preamble then
+            G.class.preamble = opts.oss.class.preamble
+        end
+        if opts.oss.class.label then
+            G.class.label = opts.oss.class.label
+        end
+        if opts.oss.class.value then
+            G.class.value = opts.oss.class.value
+        end
+    end
+
+    if opts.oss and opts.oss.enum then
+        if opts.oss.enum.value then
+            G.enum.value = opts.oss.enum.value
+        end
+    end
 end
 
 return M
