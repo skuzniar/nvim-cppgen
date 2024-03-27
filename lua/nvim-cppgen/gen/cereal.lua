@@ -23,7 +23,7 @@ G.class.separator = "' '"
 
 -- Create the label string for the member field. By default we use camelized name.
 G.class.label = function(classname, fieldname, camelized)
-    return camelized .. ': '
+    return camelized
 end
 
 -- Create the value string for the member field. By default we use field reference
@@ -105,13 +105,13 @@ local function save_class_snippet(node, specifier)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier> void save(Archive& a, const <classname>& o)'))
+    table.insert(lines, apply('<specifier> void save(Archive& archive, const <classname>& o)'))
     table.insert(lines, apply('{'))
     if G.keepindent then
         table.insert(lines, apply('<indent>// clang-format off'))
     end
 
-    table.insert(lines, apply('<indent>a('))
+    table.insert(lines, apply('<indent>archive('))
     local idx = 1
     for _,r in ipairs(records) do
         P.fieldname = r.field
