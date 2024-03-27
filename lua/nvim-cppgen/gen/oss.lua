@@ -395,26 +395,26 @@ function M.setup(opts)
         if opts.keepindent then
             G.keepindent = opts.keepindent
         end
-    end
-
-    if opts.oss and opts.oss.class then
-        if opts.oss.class.separator then
-            G.class.separator = opts.oss.class.separator
-        end
-        if opts.oss.class.preamble then
-            G.class.preamble = opts.oss.class.preamble
-        end
-        if opts.oss.class.label then
-            G.class.label = opts.oss.class.label
-        end
-        if opts.oss.class.value then
-            G.class.value = opts.oss.class.value
-        end
-    end
-
-    if opts.oss and opts.oss.enum then
-        if opts.oss.enum.value then
-            G.enum.value = opts.oss.enum.value
+        if opts.oss then
+            if opts.oss.class then
+                if opts.oss.class.separator then
+                    G.class.separator = opts.oss.class.separator
+                end
+                if opts.oss.class.preamble then
+                    G.class.preamble = opts.oss.class.preamble
+                end
+                if opts.oss.class.label then
+                    G.class.label = opts.oss.class.label
+                end
+                if opts.oss.class.value then
+                    G.class.value = opts.oss.class.value
+                end
+            end
+            if opts.oss.enum then
+                if opts.oss.enum.value then
+                    G.enum.value = opts.oss.enum.value
+                end
+            end
         end
     end
 end
