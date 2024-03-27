@@ -111,7 +111,7 @@ local function save_class_snippet(node, specifier)
         table.insert(lines, apply('<indent>// clang-format off'))
     end
 
-    table.insert(lines, apply('<indent>archive('))
+    table.insert(lines, apply('<indent>a('))
     local idx = 1
     for _,r in ipairs(records) do
         P.fieldname = r.field
