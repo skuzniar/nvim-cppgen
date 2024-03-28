@@ -82,7 +82,11 @@ local function class_labels_and_values(node, object)
                 local record = {}
                 record.field = ast.name(n)
                 record.label = G.class.label(ast.name(node), record.field, camelize(record.field))
-                record.value = G.class.value(object .. '.' .. record.field)
+                if (object) then
+                    record.value = G.class.value(object .. '.' .. record.field)
+                else
+                    record.value = G.class.value(record.field)
+                end
                 table.insert(records, record)
             end
         end
@@ -93,19 +97,23 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Generate serialization snippet for a class type node.
 ---------------------------------------------------------------------------------------------------
-local function save_class_snippet(node, specifier)
+local function save_class_snippet(node, specifier, member)
     log.debug("save_class_snippet:", ast.details(node))
 
     P.specifier = specifier
     P.classname = ast.name(node)
     P.indent    = G.indent
 
-    local records = class_labels_and_values(node, 'o')
+    local records = member and class_labels_and_values(node) or class_labels_and_values(node, 'o')
     local maxllen, maxvlen = max_lengths(records)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier> void save(Archive& archive, const <classname>& o)'))
+    if member then
+        table.insert(lines, apply('<specifier> void save(Archive& archive)'))
+    else
+        table.insert(lines, apply('<specifier> void save(Archive& archive, const <classname>& o)'))
+    end
     table.insert(lines, apply('{'))
     if G.keepindent then
         table.insert(lines, apply('<indent>// clang-format off'))
@@ -138,27 +146,16 @@ local function save_class_snippet(node, specifier)
     return table.concat(lines,"\n")
 end
 
--- Generate from string function snippet for an enum type node.
-local function save_class_member_snippet(node)
-    log.trace("save_class_member_snippet:", ast.details(node))
-    return save_class_snippet(node, 'member')
-end
-
-local function save_class_inline_snippet(node)
-    log.trace("save_class_inline_snippet:", ast.details(node))
-    return save_class_snippet(node, 'template <typename Archive>')
-end
-
 -- Generate serialization function snippet item for a class type node.
 local function save_class_member_item(node)
     log.trace("save_class_member_item:", ast.details(node))
     return
     {
-        label            = 'json',
+        label            = 'save',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = save_class_member_snippet(node)
+        insertText       = save_class_snippet(node, 'template <typename Archive>', true)
     }
 end
 
@@ -166,11 +163,11 @@ local function save_class_inline_item(node)
     log.trace("save_class_inline_item:", ast.details(node))
     return
     {
-        label            = 'json',
+        label            = 'save',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = save_class_inline_snippet(node)
+        insertText       = save_class_snippet(node, 'template <typename Archive>', false)
     }
 end
 

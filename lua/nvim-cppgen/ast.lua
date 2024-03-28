@@ -138,6 +138,7 @@ local function request_ast(client, bufnr)
 		return false
 	end
 
+    ast[bufnr] = nil
 	awaiting[bufnr] = true
 
     log.info("Requesting AST data for buffer", bufnr)
