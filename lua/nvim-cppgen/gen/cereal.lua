@@ -109,7 +109,7 @@ local function save_class_snippet(node, specifier, member)
     local lines = {}
 
     if member then
-        table.insert(lines, apply('<specifier> void save(Archive& archive)'))
+        table.insert(lines, apply('<specifier> void save(Archive& archive) const'))
     else
         table.insert(lines, apply('<specifier> void save(Archive& archive, const <classname>& o)'))
     end
