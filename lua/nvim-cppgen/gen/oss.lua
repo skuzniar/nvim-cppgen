@@ -12,7 +12,6 @@ local cmp = require('cmp')
 ---------------------------------------------------------------------------------------------------
 local G = {}
 
-G.indent     = '    '
 G.keepindent = true
 
 ---------------------------------------------------------------------------------------------------
@@ -105,7 +104,7 @@ local function shift_class_snippet(node, specifier)
     P.specifier = specifier
     P.classname = ast.name(node)
     P.separator = G.class.separator
-    P.indent    = G.indent
+    P.indent    = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
     local records = class_labels_and_values(node, 'o')
     local maxllen, maxvlen = max_lengths(records)
@@ -244,7 +243,7 @@ local function shift_enum_snippet(node, specifier)
 
     P.specifier = specifier
     P.classname = ast.name(node)
-    P.indent    = G.indent
+    P.indent    = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
     local records = enum_labels_and_values(node)
     local maxllen, maxvlen = max_lengths(records)
@@ -389,9 +388,6 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
     if opts then
-        if opts.indent then
-            G.indent = opts.indent
-        end
         if opts.keepindent then
             G.keepindent = opts.keepindent
         end

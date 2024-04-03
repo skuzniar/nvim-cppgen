@@ -12,7 +12,6 @@ local cmp = require('cmp')
 ---------------------------------------------------------------------------------------------------
 local G = {}
 
-G.indent     = '    '
 G.keepindent = true
 
 ---------------------------------------------------------------------------------------------------
@@ -58,7 +57,7 @@ local function from_string_enum_impl(node, specifier)
 
     P.specifier = specifier
     P.classname = ast.name(node)
-    P.indent    = G.indent
+    P.indent    = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
     local maxflen = max_length(node)
 
@@ -122,7 +121,7 @@ local function to_underlying_enum_impl(node, specifier)
 
     P.specifier = specifier
     P.classname = ast.name(node)
-    P.indent    = G.indent
+    P.indent    = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
     local lines = {}
 
@@ -248,9 +247,6 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
     if opts then
-        if opts.indent then
-            G.indent = opts.indent
-        end
         if opts.keepindent then
             G.keepindent = opts.keepindent
         end

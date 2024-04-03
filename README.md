@@ -17,7 +17,6 @@ Neovim C++ code generator.
             use_console = false
         },
 
-        indent     = '    ',
         keepindent = true,
         -- Output Stream Shift operator generator
         oss = {
