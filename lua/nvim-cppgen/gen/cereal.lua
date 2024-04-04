@@ -193,12 +193,12 @@ end
 function M.visit(node, line)
     -- We can generate serialization function for enclosing class node
     if ast.encloses(node, line) and is_class(node) then
-        log.debug("visit:", "Acepted enclosing node", ast.details(node))
+        log.debug("visit:", "Accepted enclosing node", ast.details(node))
         enclosing_node = node
     end
     -- We can generate serialization function for preceding class node
     if ast.precedes(node, line) and is_class(node) then
-        log.debug("visit:", "Acepted preceding node", ast.details(node))
+        log.debug("visit:", "Accepted preceding node", ast.details(node))
         preceding_node = node
     end
 end
