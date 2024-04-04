@@ -253,6 +253,7 @@ local function to_string_enum_snippet(node, specifier)
 
     table.insert(lines, apply('<specifier> std::string to_string(<classname> o)'))
     table.insert(lines, apply('{'))
+    table.insert(lines, apply('<indent>std::string r;'))
     table.insert(lines, apply('<indent>switch(o)'))
     table.insert(lines, apply('<indent>{'))
     if G.keepindent then
@@ -264,13 +265,14 @@ local function to_string_enum_snippet(node, specifier)
         P.value     = r.value
         P.labelpad  = string.rep(' ', maxllen - string.len(r.label))
         P.valuepad  = string.rep(' ', maxvlen - string.len(r.value))
-        table.insert(lines, apply('<indent><indent>case <label>:<labelpad> return <value>;<valuepad> break;'))
+        table.insert(lines, apply('<indent><indent>case <label>:<labelpad> r = <value>;<valuepad> break;'))
     end
 
     if G.keepindent then
         table.insert(lines, apply('<indent><indent>// clang-format on'))
     end
     table.insert(lines, apply('<indent>};'))
+    table.insert(lines, apply('<indent>return r;'))
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
