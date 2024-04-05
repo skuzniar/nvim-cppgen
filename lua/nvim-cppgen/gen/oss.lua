@@ -143,45 +143,36 @@ local function shift_class_snippet(node, specifier)
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
-
-    return table.concat(lines,"\n")
-end
-
--- Generate output stream friend shift operator snippet for a class type node.
-local function friend_shift_class_snippet(node)
-    log.trace("friend_shift_class_snippet:", ast.details(node))
-    return shift_class_snippet(node, 'friend')
-end
-
--- Generate output stream inline shift operator snippet for a class type node.
-local function inline_shift_class_snippet(node)
-    log.trace("inline_shift_class_snippet:", ast.details(node))
-    return shift_class_snippet(node, 'inline')
+    return lines
 end
 
 -- Generate output stream friend shift operator completion item for a class type node.
 local function friend_shift_class_item(node)
     log.trace("friend_shift_class_item:", ast.details(node))
+    local lines = shift_class_snippet(node, 'friend')
     return
     {
-        label            = 'friend',
+        label            = lines[1] or 'friend',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = friend_shift_class_snippet(node)
+        insertText       = table.concat(lines, '\n'),
+        documentation    = table.concat(lines, '\n')
     }
 end
 
 -- Generate output stream inline shift operator completion item for a class type node.
 local function inline_shift_class_item(node)
     log.trace("inline_shift_class_item:", ast.details(node))
+    local lines = shift_class_snippet(node, 'inline')
     return
     {
-        label            = 'inline',
+        label            = lines[1] or 'inline',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = inline_shift_class_snippet(node)
+        insertText       = table.concat(lines, '\n'),
+        documentation    = table.concat(lines, '\n')
     }
 end
 
@@ -275,45 +266,36 @@ local function shift_enum_snippet(node, specifier)
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
-
-    return table.concat(lines,"\n")
-end
-
--- Generate output stream friend shift operator snippet for an enum type node.
-local function friend_shift_enum_snippet(node)
-    log.trace("friend_shift_enum_snippet:", ast.details(node))
-    return shift_enum_snippet(node, 'friend')
-end
-
--- Generate output stream inline shift operator snippet for an enum type node.
-local function inline_shift_enum_snippet(node)
-    log.trace("inline_shift_enum_snippet:", ast.details(node))
-    return shift_enum_snippet(node, 'inline')
+    return lines
 end
 
 -- Generate output stream friend shift operator completion item for an enum type node.
 local function friend_shift_enum_item(node)
     log.trace("friend_shift_enum_item:", ast.details(node))
+    local lines = shift_enum_snippet(node, 'friend')
     return
     {
-        label            = 'friend',
+        label            = lines[1] or 'friend',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = friend_shift_enum_snippet(node)
+        insertText       = table.concat(lines, '\n'),
+        documentation    = table.concat(lines, '\n')
     }
 end
 
 -- Generate output stream inline shift operator completion item for an enum type node.
 local function inline_shift_enum_item(node)
     log.trace("inline_shift_enum_item:", ast.details(node))
+    local lines = shift_enum_snippet(node, 'inline')
     return
     {
-        label            = 'inline',
+        label            = lines[1] or 'inline',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = inline_shift_enum_snippet(node)
+        insertText       = table.concat(lines, '\n'),
+        documentation    = table.concat(lines, '\n')
     }
 end
 

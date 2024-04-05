@@ -141,32 +141,35 @@ local function save_class_snippet(node, specifier, member)
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
-
-    return table.concat(lines,"\n")
+    return lines
 end
 
 -- Generate serialization function snippet item for a class type node.
 local function save_class_member_item(node)
     log.trace("save_class_member_item:", ast.details(node))
+    local lines = save_class_snippet(node, 'template <typename Archive>', true)
     return
     {
         label            = 'save',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = save_class_snippet(node, 'template <typename Archive>', true)
+        insertText       = table.concat(lines, '\n'),
+        documentation    = table.concat(lines, '\n')
     }
 end
 
 local function save_class_inline_item(node)
     log.trace("save_class_inline_item:", ast.details(node))
+    local lines = save_class_snippet(node, 'template <typename Archive>', false)
     return
     {
         label            = 'save',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = save_class_snippet(node, 'template <typename Archive>', false)
+        insertText       = table.concat(lines, '\n'),
+        documentation    = table.concat(lines, '\n')
     }
 end
 

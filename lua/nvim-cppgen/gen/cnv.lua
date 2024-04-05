@@ -276,45 +276,36 @@ local function to_string_enum_snippet(node, specifier)
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
-
-    return table.concat(lines,"\n")
-end
-
--- Generate to string friend converter snippet for an enum type node.
-local function friend_to_string_enum_snippet(node)
-    log.trace("friend_to_strin_enum_snippet:", ast.details(node))
-    return to_string_enum_snippet(node, 'friend')
-end
-
--- Generate to string inline converter snippet for an enum type node.
-local function inline_to_string_enum_snippet(node)
-    log.trace("inline_to_string_enum_snippet:", ast.details(node))
-    return to_string_enum_snippet(node, 'inline')
+    return lines
 end
 
 -- Generate to string friend converter completion item for an enum type node.
 local function friend_to_string_enum_item(node)
     log.trace("friend_to_string_enum_item:", ast.details(node))
+    local lines = to_string_enum_snippet(node, 'friend')
     return
     {
-        label            = 'friend',
+        label            = lines[1] or 'friend',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = friend_to_string_enum_snippet(node)
+        insertText       = table.concat(lines, '\n'),
+        documentation    = table.concat(lines, '\n')
     }
 end
 
 -- Generate to string inline converter completion item for an enum type node.
 local function inline_to_string_enum_item(node)
     log.trace("inline_shift_enum_item:", ast.details(node))
+    local lines = to_string_enum_snippet(node, 'inline')
     return
     {
-        label            = 'inline',
+        label            = lines[1] or 'inline',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = inline_to_string_enum_snippet(node)
+        insertText       = table.concat(lines, '\n'),
+        documentation    = table.concat(lines, '\n')
     }
 end
 
