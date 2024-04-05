@@ -6,6 +6,14 @@ local log = require('nvim-cppgen.log')
 -- 1. Implements code completion source interface.
 -- 2. Implements code genration interface.
 ---------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------
+-- Global parameters for code generation.
+---------------------------------------------------------------------------------------------------
+local G = {}
+
+G.disclaimer = '// Auto-generated using nvim-cppgen'
+
 --- Exported functions
 local M = {}
 
@@ -55,9 +63,14 @@ end
 
 --- Invoke completion (required).
 function M:complete(params, callback)
-    log.trace('complete: Params', params)
+    log.trace('complete:', params)
     local items = gen.generate(params.context.bufnr)
     if items then
+        if G.disclaimer and string.len(G.disclaimer) > 0 then
+            for _,item in ipairs(items) do
+                item.insertText = G.disclaimer .. '\n' .. item.insertText
+            end
+        end
         callback(items)
     end
 end
@@ -82,6 +95,10 @@ end
 --- Initialization callback
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
+    if opts.disclaimer then
+        G.disclaimer = opts.disclaimer
+    end
+
     -- Pass the configuration to the snippet generator
     gen.setup(opts)
 end
