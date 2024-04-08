@@ -302,7 +302,7 @@ end
 local M = {}
 
 local function is_enum(node)
-    return node and node.role == "declaration" and node.kind == "Enum"
+    return node and node.role == "declaration" and node.kind == "Enum" and not string.find(node.detail, "unnamed ")
 end
 
 local function is_class(node)
@@ -312,7 +312,7 @@ end
 local enclosing_node = nil
 local preceding_node = nil
 
---- Generator will call this method before presenting set of new candidate nodes
+--- Generator will call this method before presenting a set of new candidate nodes
 function M.reset()
     enclosing_node = nil
     preceding_node = nil
