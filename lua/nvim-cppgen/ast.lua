@@ -19,9 +19,9 @@ end
 function M.details(node)
     if node then
         if node.range then
-            return node.kind .. ' ' .. (node.detail or "<???>") .. '[' .. node.range['start'].line .. ',' .. node.range['end'].line .. ']'
+            return node.role .. ' ' .. node.kind .. ' ' .. (node.detail or "<???>") .. '[' .. node.range['start'].line .. ',' .. node.range['end'].line .. ']'
         else
-            return node.kind .. ' ' .. (node.detail or "<???>") .. '[]'
+            return node.role .. ' ' .. node.kind .. ' ' .. (node.detail or "<???>") .. '[]'
         end
     else
         return 'nil'

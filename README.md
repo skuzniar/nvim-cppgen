@@ -50,6 +50,15 @@ Neovim C++ code generator.
         cereal = {
             -- Nothing yet
         }
+        -- Switch statement generator
+        switch = {
+            keepindent = false,
+            enum = {
+                value = function(classname, fieldname)
+                    return '// ' .. classname .. '::' .. fieldname
+                end
+            },
+        }
     }
 }
 ```

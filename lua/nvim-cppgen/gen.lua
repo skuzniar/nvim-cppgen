@@ -11,7 +11,8 @@ local log = require('nvim-cppgen.log')
 local G = {
     require('nvim-cppgen.gen.oss'),
     require('nvim-cppgen.gen.cnv'),
-    require('nvim-cppgen.gen.cereal')
+    require('nvim-cppgen.gen.cereal'),
+    require('nvim-cppgen.gen.switch')
 }
 
 --- Keep track of results
@@ -23,19 +24,20 @@ local M = {}
 --- Return true if the code can be generated in the current context - buffer and cursor position
 function M.available(bufnr)
     log.trace("available:", "buffer", bufnr)
-    if R.visited then
+    if R.visited and R.available then
         return R.available
     end
 
 	local line = ctx.context(bufnr)[1] - 1
-
-    R.visited = ast.visit_relevant_nodes(bufnr, line,
-        function(n, l)
-            for _,g in pairs(G) do
-                g.visit(n, l)
+    if not R.visited then
+        R.visited = ast.visit_relevant_nodes(bufnr, line,
+            function(n, l)
+                for _,g in pairs(G) do
+                    g.visit(n, l)
+                end
             end
-        end
-    )
+        )
+    end
 
     R.available = false
     for _,g in pairs(G) do
@@ -78,6 +80,12 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.attached(client, bufnr)
     log.trace("Attached client", client.id, "buffer", bufnr)
+    -- Inform code generators in case they care
+    for _,g in pairs(G) do
+        if g.attached then
+            g.attached(client, bufnr)
+        end
+    end
 end
 
 function M.insert_enter(client, bufnr)
