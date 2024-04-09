@@ -339,7 +339,7 @@ end
 
 -- Generate plain output stream shift operator for a class and enum nodes.
 function M.completion_items()
-    log.trace("completion_items:")
+    log.trace("completion_items:", ast.details(preceding_node), ast.details(enclosing_node))
 
     local items = {}
 
@@ -370,10 +370,13 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
     if opts then
-        if opts.keepindent then
+        if opts.keepindent ~= nil then
             G.keepindent = opts.keepindent
         end
         if opts.oss then
+            if opts.oss.keepindent ~= nil then
+                G.keepindent = opts.oss.keepindent
+            end
             if opts.oss.class then
                 if opts.oss.class.separator then
                     G.class.separator = opts.oss.class.separator

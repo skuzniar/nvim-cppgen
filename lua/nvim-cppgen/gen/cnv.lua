@@ -372,10 +372,13 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
     if opts then
-        if opts.keepindent then
+        if opts.keepindent ~= nil then
             G.keepindent = opts.keepindent
         end
         if opts.cnv then
+            if opts.cnv.keepindent ~= nil then
+                G.keepindent = opts.cnv.keepindent
+            end
             if opts.cnv.enum then
                 if opts.cnv.enum.value then
                     G.enum.value = opts.cnv.enum.value

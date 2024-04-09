@@ -232,10 +232,13 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
     if opts then
-        if opts.keepindent then
+        if opts.keepindent ~= nil then
             G.keepindent = opts.keepindent
         end
         if opts.cereal then
+            if opts.cereal.keepindent ~= nil then
+                G.keepindent = opts.cereal.keepindent
+            end
             if opts.cereal.class then
                 if opts.cereal.class.label then
                     G.class.label = opts.cereal.class.label
