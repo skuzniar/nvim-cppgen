@@ -50,14 +50,18 @@ end
 local function visit(symbols, bufnr)
     log.trace("visit:", "buffer", bufnr)
 
-	local line = ctx.context(bufnr)[1] - 1
-    visit_relevant_nodes(symbols, line,
-        function(n, l)
-            for _,g in pairs(G) do
-                g.visit(n, l)
+    -- We may have left insert mode by the time AST arrived
+	local cursor = ctx.context(bufnr)
+    if cursor ~= nil then
+	    local line = ctx.context(bufnr)[1] - 1
+        visit_relevant_nodes(symbols, line,
+            function(n, l)
+                for _,g in pairs(G) do
+                    g.visit(n, l)
+                end
             end
-        end
-    )
+        )
+    end
 end
 
 --- Exported functions
