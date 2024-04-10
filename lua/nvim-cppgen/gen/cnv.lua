@@ -344,7 +344,7 @@ end
 
 --- Generator will call this method to check if the module can generate code
 function M.available()
-    return enclosing_node or preceding_node
+    return enclosing_node ~= nil or preceding_node ~= nil
 end
 
 -- Generate from string functions for an enum nodes.

@@ -173,7 +173,7 @@ end
 
 --- Given a symbol tree, find a node whose definition starts at a given range
 local function get_type_definition_node(symbols, range)
-    log.debug("get_type_definition_node:", symbols, range)
+    log.trace("get_type_definition_node:", "symbols", symbols, "range", range)
 
     local node = nil
     ast.dfs(symbols,
@@ -186,6 +186,7 @@ local function get_type_definition_node(symbols, range)
             end
         end
         )
+    log.trace("get_type_definition_node:", node)
     return node
 end
 
@@ -239,7 +240,7 @@ function M.visit(node, line)
     if ast.encloses(node, line) and is_switch(node) then
         local cond = get_condition_node(node)
         if cond then
-            log.debug("visit:", "Accepted condition node", ast.details(cond))
+            log.trace("visit:", "condition node", ast.details(cond))
             get_condition_type_definition(cond)
         end
     end
@@ -247,7 +248,7 @@ end
 
 --- Generator will call this method to check if the module can generate code
 function M.available()
-    return condition_definition_node
+    return condition_definition_node ~= nil
 end
 
 -- Generate from string functions for an enum nodes.

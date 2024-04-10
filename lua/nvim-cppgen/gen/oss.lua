@@ -334,7 +334,7 @@ end
 
 --- Generator will call this method to check if the module can generate code
 function M.available()
-    return enclosing_node or preceding_node
+    return enclosing_node ~= nil or preceding_node ~= nil
 end
 
 -- Generate plain output stream shift operator for a class and enum nodes.
