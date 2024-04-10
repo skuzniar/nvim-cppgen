@@ -129,7 +129,7 @@ function M.insert_enter(client, bufnr)
                 log.error(err)
             else
                 log.info("Received AST data with", (symbols and symbols.children and #symbols.children or 0), "top level nodes")
-                --log.trace(symbols)
+                log.trace(symbols)
                 visit(symbols, bufnr)
 		    end
 	    end)
