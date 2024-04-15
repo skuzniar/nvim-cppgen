@@ -97,8 +97,8 @@ local function max_lengths(records)
 end
 
 -- Generate from string function for an enum type node - implementation.
-local function from_string_enum_impl(node, specifier)
-    log.trace("from_string_enum_impl:", ast.details(node))
+local function from_string_enum_snippet(node, specifier)
+    log.trace("from_string_enum_snippet:", ast.details(node))
 
     P.specifier = specifier
     P.classname = ast.name(node)
@@ -133,11 +133,11 @@ local function from_string_enum_impl(node, specifier)
         function(n)
             if n.kind == "EnumConstant" then
                 P.fieldname = ast.name(n)
-                P.fieldpad  = string.rep(' ', maxflen - string.len(P.fieldname))
+                P.valuepad  = string.rep(' ', maxflen - string.len(P.fieldname))
                 if idx == cnt then
-                    table.insert(lines, apply('<indent><indent>i == static_cast<std::underlying_type_t<<classname>>>(<classname>::<fieldname>)<fieldpad>;'))
+                    table.insert(lines, apply('<indent><indent>i == static_cast<std::underlying_type_t<<classname>>>(<classname>::<fieldname>)<valuepad>;'))
                 else
-                    table.insert(lines, apply('<indent><indent>i == static_cast<std::underlying_type_t<<classname>>>(<classname>::<fieldname>)<fieldpad> ||'))
+                    table.insert(lines, apply('<indent><indent>i == static_cast<std::underlying_type_t<<classname>>>(<classname>::<fieldname>)<valuepad> ||'))
                 end
                 idx = idx + 1
             end
@@ -156,13 +156,12 @@ local function from_string_enum_impl(node, specifier)
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
-
-    return table.concat(lines,"\n")
+    return lines
 end
 
 -- Generate to underlying function for an enum type node - implementation.
-local function to_underlying_enum_impl(node, specifier)
-    log.trace("to_underlying_enum_impl:", ast.details(node))
+local function to_underlying_enum_snippet(node, specifier)
+    log.trace("to_underlying_enum_snippet:", ast.details(node))
 
     P.specifier = specifier
     P.classname = ast.name(node)
@@ -176,63 +175,51 @@ local function to_underlying_enum_impl(node, specifier)
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
-
-    return table.concat(lines,"\n")
-end
-
--- Generate from string function snippet for an enum type node.
-local function from_string_member_enum_snippet(node)
-    log.trace("from_string_member_enum_snippet:", ast.details(node))
-    return from_string_enum_impl(node, 'static')
-end
-
-local function from_string_template_enum_snippet(node)
-    log.trace("from_string_template_enum_snippet:", ast.details(node))
-    return from_string_enum_impl(node, 'template <> inline')
-end
-
--- Generate to underlying type conversion function snippet for an enum type node.
-local function to_underlying_enum_snippet(node)
-    log.trace("to_underlying_enum_snippet:", ast.details(node))
-    return to_underlying_enum_impl(node, 'inline')
+    return lines
 end
 
 -- Generate from string (member) function snippet item for an enum type node.
 local function from_string_member_enum_item(node)
     log.trace("from_string_member_enum_item:", ast.details(node))
+    local lines = from_string_enum_snippet(node, 'static')
     return
     {
         label            = 'from',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = from_string_member_enum_snippet(node)
+        insertText       = table.concat(lines, '\n'),
+        documentation    = table.concat(lines, '\n')
     }
 end
 
 -- Generate from string template function snippet item for an enum type node.
 local function from_string_template_enum_item(node)
     log.trace("from_string_template_enum_item:", ast.details(node))
+    local lines = from_string_enum_snippet(node, 'template <> inline')
     return
     {
         label            = 'from',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = from_string_template_enum_snippet(node)
+        insertText       = table.concat(lines, '\n'),
+        documentation    = table.concat(lines, '\n')
     }
 end
 
 -- Generate to underlying type conversion function snippet item for an enum type node.
 local function to_underlying_enum_item(node)
     log.trace("to_underlying_enum_item:", ast.details(node))
+    local lines = to_underlying_enum_snippet(node, 'inline')
     return
     {
         label            = 'to_u',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = to_underlying_enum_snippet(node)
+        insertText       = table.concat(lines, '\n'),
+        documentation    = table.concat(lines, '\n')
     }
 end
 
