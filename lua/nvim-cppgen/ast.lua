@@ -5,28 +5,6 @@ local log = require('nvim-cppgen.log')
 ---------------------------------------------------------------------------------------------------
 local M = {}
 
---- Return node details - name and range, adjusted for line numbers starting from one.
-function M.details(node)
-    if node then
-        if node.range then
-            return node.role .. ' ' .. node.kind .. ' ' .. (node.detail or "<???>") .. '[' .. node.range['start'].line .. ',' .. node.range['end'].line .. ']'
-        else
-            return node.role .. ' ' .. node.kind .. ' ' .. (node.detail or "<???>") .. '[]'
-        end
-    else
-        return 'nil'
-    end
-end
-
---- Return node name.
-function M.name(node)
-    if node then
-        return (node.detail or "<???>")
-    else
-        return 'nil'
-    end
-end
-
 --- Depth first traversal over AST tree with descend filter, pre and post order operations.
 function M.dfs(node, filt, pref, posf)
     pref(node)
@@ -62,6 +40,44 @@ function M.count_children(node, p)
 		end
     end
     return cnt
+end
+
+--- Return node details - name and range, adjusted for line numbers starting from one.
+function M.details(node)
+    if node then
+        if node.range then
+            return node.role .. ' ' .. node.kind .. ' ' .. (node.detail or "<???>") .. '[' .. node.range['start'].line .. ',' .. node.range['end'].line .. ']'
+        else
+            return node.role .. ' ' .. node.kind .. ' ' .. (node.detail or "<???>") .. '[]'
+        end
+    else
+        return 'nil'
+    end
+end
+
+--- Return node name.
+function M.name(node)
+    if node then
+        return (node.detail or "<???>")
+    else
+        return 'nil'
+    end
+end
+
+-- Attempt to find the node type
+function M.type(node)
+    local result = nil
+    M.dfs(node,
+        function(_)
+            return not result
+        end,
+        function(n)
+            if n.role == "type" and n.detail ~= nil then
+                result = n.detail
+            end
+        end
+        )
+    return result
 end
 
 --- Returns true if the cursor line position is within the node's range

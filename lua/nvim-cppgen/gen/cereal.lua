@@ -26,7 +26,7 @@ G.class.label = function(classname, fieldname, camelized)
 end
 
 -- Create the value string for the member field. By default we use field reference
-G.class.value = function(fieldref)
+G.class.value = function(fieldref, type)
     return fieldref
 end
 
@@ -82,9 +82,9 @@ local function class_labels_and_values(node, object)
                 record.field = ast.name(n)
                 record.label = G.class.label(ast.name(node), record.field, camelize(record.field))
                 if (object) then
-                    record.value = G.class.value(object .. '.' .. record.field)
+                    record.value = G.class.value(object .. '.' .. record.field, ast.type(n))
                 else
-                    record.value = G.class.value(record.field)
+                    record.value = G.class.value(record.field, ast.type(n))
                 end
                 table.insert(records, record)
             end

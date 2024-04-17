@@ -28,7 +28,7 @@ Neovim C++ code generator.
                 label = function(classname, fieldname, camelized)
                     return camelized .. ': '
                 end,
-                value = function(fieldref)
+                value = function(fieldref, type)
                     return fieldref
                 end
             },
@@ -48,7 +48,14 @@ Neovim C++ code generator.
         },
         -- JSON serialization using cereal library
         cereal = {
-            -- Nothing yet
+            class = {
+                label = function(classname, fieldname, camelized)
+                    return camelized
+                end,
+                value = function(fieldref, type)
+                    return fieldref
+                end
+            },
         }
         -- Switch statement generator
         switch = {
