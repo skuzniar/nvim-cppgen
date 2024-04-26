@@ -18,7 +18,6 @@ G.keepindent = true
 -- Class specific parameters
 ---------------------------------------------------------------------------------------------------
 G.class = {}
-G.class.separator = "' '"
 
 -- Create the label string for the member field. By default we use camelized name.
 G.class.label = function(classname, fieldname, camelized)
@@ -173,18 +172,14 @@ local function save_class_inline_item(node)
     }
 end
 
-local M = {}
-
-local function is_enum(node)
-    return node and node.role == "declaration" and node.kind == "Enum" and not string.find(node.detail, "unnamed ")
-end
-
 local function is_class(node)
     return node and node.role == "declaration" and node.kind == "CXXRecord"
 end
 
 local enclosing_node = nil
 local preceding_node = nil
+
+local M = {}
 
 --- Generator will call this method before presenting a set of new candidate nodes
 function M.reset()
@@ -211,7 +206,7 @@ function M.available()
     return enclosing_node ~= nil or preceding_node ~= nil
 end
 
--- Generate from string functions for an enum nodes.
+-- Generate completion items
 function M.completion_items()
     log.trace("completion_items:", ast.details(preceding_node), ast.details(enclosing_node))
 
@@ -245,11 +240,6 @@ function M.setup(opts)
                 end
                 if opts.cereal.class.value then
                     G.class.value = opts.cereal.class.value
-                end
-            end
-            if opts.cereal.enum then
-                if opts.cereal.enum.value then
-                    G.enum.value = opts.cereal.enum.value
                 end
             end
         end

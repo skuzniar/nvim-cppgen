@@ -46,7 +46,7 @@ Neovim C++ code generator.
         cnv = {
             -- Nothing yet
         },
-        -- JSON serialization using cereal library
+        -- Class serialization using cereal library
         cereal = {
             class = {
                 label = function(classname, fieldname, camelized)
@@ -57,7 +57,7 @@ Neovim C++ code generator.
                 end
             },
         }
-        -- Switch statement generator
+        -- Switch statement generator for enum types
         switch = {
             keepindent = false,
             enum = {

@@ -68,6 +68,26 @@ local function apply(format)
     return result;
 end
 
+-- Attempt to find integral constant for the enum element
+local function integral_literal(node)
+    log.trace("integral_literal:", ast.details(node))
+
+    local result = nil
+    ast.visit_children(node,
+        function(n)
+            if n.kind == "IntegerLiteral" or n.kind == "CharacterLiteral" then
+                result = n.detail
+            else
+                result = integral_literal(n)
+            end
+            if (result) then
+                return result
+            end
+        end
+    )
+    return result
+end
+
 -- Collect names and values for an enum type node.
 local function enum_labels_and_values(node)
     local records = {}
@@ -76,7 +96,7 @@ local function enum_labels_and_values(node)
             if n.kind == "EnumConstant" then
                 local record = {}
                 record.label = ast.name(node) .. '::' .. ast.name(n)
-                record.value = G.enum.value(ast.name(n))
+                record.value = G.enum.value(ast.name(n), integral_literal(n))
                 table.insert(records, record)
             end
         end
@@ -184,7 +204,7 @@ local function from_string_member_enum_item(node)
     local lines = from_string_enum_snippet(node, 'static')
     return
     {
-        label            = 'from',
+        label            = 'conv',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
@@ -199,7 +219,7 @@ local function from_string_template_enum_item(node)
     local lines = from_string_enum_snippet(node, 'template <> inline')
     return
     {
-        label            = 'from',
+        label            = 'conv',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
@@ -214,7 +234,7 @@ local function to_underlying_enum_item(node)
     local lines = to_underlying_enum_snippet(node, 'inline')
     return
     {
-        label            = 'to_u',
+        label            = 'conv',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
@@ -272,7 +292,7 @@ local function friend_to_string_enum_item(node)
     local lines = to_string_enum_snippet(node, 'friend')
     return
     {
-        label            = lines[1] or 'friend',
+        label            = 'conv',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
@@ -287,7 +307,7 @@ local function inline_to_string_enum_item(node)
     local lines = to_string_enum_snippet(node, 'inline')
     return
     {
-        label            = lines[1] or 'inline',
+        label            = 'conv',
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
