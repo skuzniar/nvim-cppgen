@@ -80,12 +80,17 @@ local function class_labels_and_values(node, object)
                 local record = {}
                 record.field = ast.name(n)
                 record.label = G.class.label(ast.name(node), record.field, camelize(record.field))
-                if (object) then
-                    record.value = G.class.value(object .. '.' .. record.field, ast.type(n))
-                else
-                    record.value = G.class.value(record.field, ast.type(n))
+                -- Custom code will trigger field skipping when it sets either label or value to nil
+                if record.label ~= nil then
+                    if (object) then
+                        record.value = G.class.value(object .. '.' .. record.field, ast.type(n))
+                    else
+                        record.value = G.class.value(record.field, ast.type(n))
+                    end
+                    if record.value ~= nil then
+                        table.insert(records, record)
+                    end
                 end
-                table.insert(records, record)
             end
         end
     )
