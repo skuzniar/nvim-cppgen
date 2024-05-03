@@ -29,6 +29,16 @@ G.class.value = function(fieldref, type)
     return fieldref
 end
 
+-- Check if field it null and handle it accordingly. By default we do not check.
+G.class.nullcheck = function(fieldref, type)
+    return nil
+end
+
+-- If checking for null field, may want to skip it or show special value. By default we skip
+G.class.nullvalue = function(fieldref, type)
+    return nil
+end
+
 -- Calculate the longest length of labels and values
 local function max_lengths(records)
     local max_lab_len = 0
@@ -68,6 +78,9 @@ local function apply(format)
     result = string.gsub(result, "<fieldname>", P.fieldname or '')
     result = string.gsub(result, "<indent>",    P.indent    or '')
 
+    result = string.gsub(result, "<nullcheck>", P.nullcheck or '')
+    result = string.gsub(result, "<nullvalue>", P.nullvalue or '')
+
     return result;
 end
 
@@ -80,6 +93,22 @@ local function class_labels_and_values(node, object)
                 local record = {}
                 record.field = ast.name(n)
                 record.label = G.class.label(ast.name(node), record.field, camelize(record.field))
+
+                -- Null handling checks
+                if G.class.nullcheck then
+                    if (object) then
+                        record.nullcheck = G.class.nullcheck(object .. '.' .. record.field, ast.type(n))
+                    else
+                        record.nullcheck = G.class.nullcheck(record.field, ast.type(n))
+                    end
+                end
+                if G.class.nullvalue then
+                    if (object) then
+                        record.nullvalue = G.class.nullvalue(object .. '.' .. record.field, ast.type(n))
+                    else
+                        record.nullvalue = G.class.nullvalue(record.field, ast.type(n))
+                    end
+                end
                 -- Custom code will trigger field skipping when it sets either label or value to nil
                 if record.label ~= nil then
                     if (object) then
@@ -122,7 +151,31 @@ local function save_class_snippet(node, specifier, member)
         table.insert(lines, apply('<indent>// clang-format off'))
     end
 
-    table.insert(lines, apply('<indent>archive('))
+    --- Get straight - no null check code variation
+    local function straight_code(l, last)
+        if last then
+            table.insert(l, apply('<indent>archive(cereal::make_nvp("<label>",<labelpad> <value>))'))
+        else
+            table.insert(l, apply('<indent>archive(cereal::make_nvp("<label>",<labelpad> <value>)),'))
+        end
+    end
+
+    --- Get skip-null code variation
+    local function skipnull_code(l, last)
+        table.insert(l, apply('<indent>if(!<nullcheck>) {'))
+        table.insert(l, apply('<indent><indent>archive(cereal::make_nvp("<label>", <value>));'))
+        table.insert(l, apply('<indent>}'))
+    end
+
+    --- Get show-null code variation
+    local function shownull_code(l, last)
+        table.insert(l, apply('<indent>if(!<nullcheck>) {'))
+        table.insert(l, apply('<indent><indent>archive(cereal::make_nvp("<label>", <value>));'))
+        table.insert(l, apply('<indent>} else {'))
+        table.insert(l, apply('<indent><indent>archive(cereal::make_nvp("<label>", <nullvalue>));'))
+        table.insert(l, apply('<indent>}'))
+    end
+
     local idx = 1
     for _,r in ipairs(records) do
         P.fieldname = r.field
@@ -130,14 +183,20 @@ local function save_class_snippet(node, specifier, member)
         P.value     = r.value
         P.labelpad  = string.rep(' ', maxllen - string.len(r.label))
         P.valuepad  = string.rep(' ', maxvlen - string.len(r.value))
-        if idx == #records then
-            table.insert(lines, apply('<indent><indent>cereal::make_nvp("<label>",<labelpad> <value>)'))
+        P.nullcheck = r.nullcheck
+        P.nullvalue = r.nullvalue
+
+        if r.nullcheck ~= nil then
+            if r.nullvalue ~= nil then
+                shownull_code(lines, idx == #records)
+            else
+                skipnull_code(lines, idx == #records)
+            end
         else
-            table.insert(lines, apply('<indent><indent>cereal::make_nvp("<label>",<labelpad> <value>),'))
+            straight_code(lines, idx == #records)
         end
         idx = idx + 1
     end
-    table.insert(lines, apply('<indent>);'))
 
     if G.keepindent then
         table.insert(lines, apply('<indent>// clang-format on'))
@@ -245,6 +304,12 @@ function M.setup(opts)
                 end
                 if opts.cereal.class.value then
                     G.class.value = opts.cereal.class.value
+                end
+                if opts.cereal.class.nullcheck then
+                    G.class.nullcheck = opts.cereal.class.nullcheck
+                end
+                if opts.cereal.class.nullvalue then
+                    G.class.nullvalue = opts.cereal.class.nullvalue
                 end
             end
         end
