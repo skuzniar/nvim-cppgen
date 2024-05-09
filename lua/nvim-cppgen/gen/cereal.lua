@@ -153,11 +153,7 @@ local function save_class_snippet(node, specifier, member)
 
     --- Get straight - no null check code variation
     local function straight_code(l, last)
-        if last then
-            table.insert(l, apply('<indent>archive(cereal::make_nvp("<label>",<labelpad> <value>))'))
-        else
-            table.insert(l, apply('<indent>archive(cereal::make_nvp("<label>",<labelpad> <value>)),'))
-        end
+        table.insert(l, apply('<indent>archive(cereal::make_nvp("<label>",<labelpad> <value>));'))
     end
 
     --- Get skip-null code variation
