@@ -303,8 +303,96 @@ end
 
 -- Generate to string inline converter completion item for an enum type node.
 local function inline_to_string_enum_item(node)
-    log.trace("inline_shift_enum_item:", ast.details(node))
+    log.trace("inline_to_string_enum_item:", ast.details(node))
     local lines = to_string_enum_snippet(node, 'inline')
+    return
+    {
+        label            = 'conv',
+        kind             = cmp.lsp.CompletionItemKind.Snippet,
+        insertTextMode   = 2,
+        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+        insertText       = table.concat(lines, '\n'),
+        documentation    = table.concat(lines, '\n')
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+-- Generate enumerator string converter for an enum type node.
+---------------------------------------------------------------------------------------------------
+local function to_enumerator_string_enum_snippet(node, specifier)
+    log.trace("to_enumerator_string_enum_snippet:", ast.details(node))
+
+    P.specifier = specifier
+    P.classname = ast.name(node)
+    P.indent    = string.rep(' ', vim.lsp.util.get_effective_tabstop())
+
+    local function labels_and_values()
+        local records = {}
+        ast.visit_children(node,
+            function(n)
+                if n.kind == "EnumConstant" then
+                    local record = {}
+                    record.label = ast.name(node) .. '::' .. ast.name(n)
+                    record.value = '"' .. ast.name(n) .. '"'
+                    table.insert(records, record)
+                end
+            end
+        )
+        return records
+    end
+
+    local records = labels_and_values()
+    local maxllen, maxvlen = max_lengths(records)
+
+    local lines = {}
+
+    table.insert(lines, apply('<specifier> std::string enumerator(<classname> o)'))
+    table.insert(lines, apply('{'))
+    table.insert(lines, apply('<indent>std::string r;'))
+    table.insert(lines, apply('<indent>switch(o)'))
+    table.insert(lines, apply('<indent>{'))
+    if G.keepindent then
+        table.insert(lines, apply('<indent><indent>// clang-format off'))
+    end
+
+    for _,r in ipairs(records) do
+        P.label     = r.label
+        P.value     = r.value
+        P.labelpad  = string.rep(' ', maxllen - string.len(r.label))
+        P.valuepad  = string.rep(' ', maxvlen - string.len(r.value))
+        table.insert(lines, apply('<indent><indent>case <label>:<labelpad> r = <value>;<valuepad> break;'))
+    end
+
+    if G.keepindent then
+        table.insert(lines, apply('<indent><indent>// clang-format on'))
+    end
+    table.insert(lines, apply('<indent>};'))
+    table.insert(lines, apply('<indent>return r;'))
+    table.insert(lines, apply('}'))
+
+    for _,l in ipairs(lines) do log.debug(l) end
+    return lines
+end
+
+-- Generate to string friend converter completion item for an enum type node.
+local function friend_to_enumerator_string_enum_item(node)
+    log.trace("friend_to_enumerator_string_enum_item:", ast.details(node))
+    local lines = to_enumerator_string_enum_snippet(node, 'friend')
+    return
+    {
+        label            = 'conv',
+        kind             = cmp.lsp.CompletionItemKind.Snippet,
+        insertTextMode   = 2,
+        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+        insertText       = table.concat(lines, '\n'),
+        documentation    = table.concat(lines, '\n')
+    }
+end
+
+-- Generate to string inline converter completion item for an enum type node.
+local function inline_to_enumerator_string_enum_item(node)
+    log.trace("inline_to_enumerator_string_enum_item:", ast.details(node))
+    local lines = to_enumerator_string_enum_snippet(node, 'inline')
     return
     {
         label            = 'conv',
@@ -364,9 +452,11 @@ function M.completion_items()
         if is_class(enclosing_node) then
             table.insert(items, from_string_member_enum_item(preceding_node))
             table.insert(items, friend_to_string_enum_item(preceding_node))
+            table.insert(items, friend_to_enumerator_string_enum_item(preceding_node))
         else
             table.insert(items, from_string_template_enum_item(preceding_node))
             table.insert(items, inline_to_string_enum_item(preceding_node))
+            table.insert(items, inline_to_enumerator_string_enum_item(preceding_node))
         end
         table.insert(items, to_underlying_enum_item(preceding_node))
     end
