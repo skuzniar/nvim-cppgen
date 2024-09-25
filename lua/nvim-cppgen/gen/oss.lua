@@ -65,15 +65,16 @@ local P = {}
 local function apply(format)
     local result  = format
 
-    result = string.gsub(result, "<label>",     P.label     or '')
-    result = string.gsub(result, "<labelpad>",  P.labelpad  or '')
-    result = string.gsub(result, "<value>",     P.value     or '')
-    result = string.gsub(result, "<valuepad>",  P.valuepad  or '')
-    result = string.gsub(result, "<specifier>", P.specifier or '')
-    result = string.gsub(result, "<classname>", P.classname or '')
-    result = string.gsub(result, "<fieldname>", P.fieldname or '')
-    result = string.gsub(result, "<separator>", P.separator or '')
-    result = string.gsub(result, "<indent>",    P.indent    or '')
+    result = string.gsub(result, "<label>",      P.label      or '')
+    result = string.gsub(result, "<labelpad>",   P.labelpad   or '')
+    result = string.gsub(result, "<value>",      P.value      or '')
+    result = string.gsub(result, "<valuepad>",   P.valuepad   or '')
+    result = string.gsub(result, "<specifier>",  P.specifier  or '')
+    result = string.gsub(result, "<attributes>", P.attributes or '')
+    result = string.gsub(result, "<classname>",  P.classname  or '')
+    result = string.gsub(result, "<fieldname>",  P.fieldname  or '')
+    result = string.gsub(result, "<separator>",  P.separator  or '')
+    result = string.gsub(result, "<indent>",     P.indent     or '')
 
     return result;
 end
@@ -101,17 +102,18 @@ end
 local function shift_class_snippet(node, specifier)
     log.debug("shift_class_snippet:", ast.details(node))
 
-    P.specifier = specifier
-    P.classname = ast.name(node)
-    P.separator = G.class.separator
-    P.indent    = string.rep(' ', vim.lsp.util.get_effective_tabstop())
+    P.specifier  = specifier
+    P.attributes = G.attributes and ' ' .. G.attributes or ''
+    P.classname  = ast.name(node)
+    P.separator  = G.class.separator
+    P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
     local records = class_labels_and_values(node, 'o')
     local maxllen, maxvlen = max_lengths(records)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier> std::ostream& operator<<(std::ostream& s, const <classname>& o)'))
+    table.insert(lines, apply('<specifier><attributes> std::ostream& operator<<(std::ostream& s, const <classname>& o)'))
     table.insert(lines, apply('{'))
     if G.keepindent then
         table.insert(lines, apply('<indent>// clang-format off'))
@@ -232,16 +234,17 @@ end
 local function shift_enum_snippet(node, specifier)
     log.trace("shift_enum_snippet:", ast.details(node))
 
-    P.specifier = specifier
-    P.classname = ast.name(node)
-    P.indent    = string.rep(' ', vim.lsp.util.get_effective_tabstop())
+    P.specifier  = specifier
+    P.attributes = G.attributes and ' ' .. G.attributes or ''
+    P.classname  = ast.name(node)
+    P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
     local records = enum_labels_and_values(node)
     local maxllen, maxvlen = max_lengths(records)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier> std::ostream& operator<<(std::ostream& s, <classname> o)'))
+    table.insert(lines, apply('<specifier><attributes> std::ostream& operator<<(std::ostream& s, <classname> o)'))
     table.insert(lines, apply('{'))
     table.insert(lines, apply('<indent>switch(o)'))
     table.insert(lines, apply('<indent>{'))
@@ -373,9 +376,15 @@ function M.setup(opts)
         if opts.keepindent ~= nil then
             G.keepindent = opts.keepindent
         end
+        if opts.attributes ~= nil then
+            G.attributes = opts.attributes
+        end
         if opts.oss then
             if opts.oss.keepindent ~= nil then
                 G.keepindent = opts.oss.keepindent
+            end
+            if opts.oss.attributes ~= nil then
+                G.attributes = opts.oss.attributes
             end
             if opts.oss.class then
                 if opts.oss.class.separator then

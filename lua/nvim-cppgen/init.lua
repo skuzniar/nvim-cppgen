@@ -42,6 +42,15 @@ local function attach(client, bufnr)
     end
 end
 
+--- Place to define global options
+local function globals(opts)
+	if opts then
+	    if not opts.attributes then
+            opts.attributes = '[[cppgen::auto]]'
+        end
+	end
+end
+
 --- Setup
 function M.setup(opts)
     -- We configure log module ourselves
@@ -50,6 +59,9 @@ function M.setup(opts)
 	end
 
     log.trace("setup:", opts)
+
+    -- Add global options
+    globals(opts)
 
     -- Setup code generator
     cgn.setup(opts)

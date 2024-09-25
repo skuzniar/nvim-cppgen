@@ -55,15 +55,16 @@ end
 local function apply(format)
     local result  = format
 
-    result = string.gsub(result, "<label>",     P.label     or '')
-    result = string.gsub(result, "<labelpad>",  P.labelpad  or '')
-    result = string.gsub(result, "<value>",     P.value     or '')
-    result = string.gsub(result, "<valuepad>",  P.valuepad  or '')
-    result = string.gsub(result, "<specifier>", P.specifier or '')
-    result = string.gsub(result, "<classname>", P.classname or '')
-    result = string.gsub(result, "<fieldname>", P.fieldname or '')
-    result = string.gsub(result, "<separator>", P.separator or '')
-    result = string.gsub(result, "<indent>",    P.indent    or '')
+    result = string.gsub(result, "<label>",      P.label      or '')
+    result = string.gsub(result, "<labelpad>",   P.labelpad   or '')
+    result = string.gsub(result, "<value>",      P.value      or '')
+    result = string.gsub(result, "<valuepad>",   P.valuepad   or '')
+    result = string.gsub(result, "<specifier>",  P.specifier  or '')
+    result = string.gsub(result, "<attributes>", P.attributes or '')
+    result = string.gsub(result, "<classname>",  P.classname  or '')
+    result = string.gsub(result, "<fieldname>",  P.fieldname  or '')
+    result = string.gsub(result, "<separator>",  P.separator  or '')
+    result = string.gsub(result, "<indent>",     P.indent     or '')
 
     return result;
 end
@@ -120,15 +121,16 @@ end
 local function from_string_enum_snippet(node, specifier)
     log.trace("from_string_enum_snippet:", ast.details(node))
 
-    P.specifier = specifier
-    P.classname = ast.name(node)
-    P.indent    = string.rep(' ', vim.lsp.util.get_effective_tabstop())
+    P.specifier  = specifier
+    P.attributes = G.attributes and ' ' .. G.attributes or ''
+    P.classname  = ast.name(node)
+    P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
     local maxflen = max_length(node)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier> <classname> from_string(std::string_view v)'))
+    table.insert(lines, apply('<specifier><attributes> <classname> from_string(std::string_view v)'))
     table.insert(lines, apply('{'))
     table.insert(lines, apply('<indent>int  i = 0;'))
     table.insert(lines, apply('<indent>auto r = std::from_chars(v.begin(), v.end(), i);'))
@@ -189,7 +191,7 @@ local function to_underlying_enum_snippet(node, specifier)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier> std::underlying_type_t<<classname>> to_underlying(<classname> e)'))
+    table.insert(lines, apply('<specifier><attributes> std::underlying_type_t<<classname>> to_underlying(<classname> e)'))
     table.insert(lines, apply('{'))
     table.insert(lines, apply('<indent>return std::underlying_type_t<<classname>>(e);'))
     table.insert(lines, apply('}'))
@@ -258,7 +260,7 @@ local function to_string_enum_snippet(node, specifier)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier> std::string to_string(<classname> o)'))
+    table.insert(lines, apply('<specifier><attributes> std::string to_string(<classname> o)'))
     table.insert(lines, apply('{'))
     table.insert(lines, apply('<indent>std::string r;'))
     table.insert(lines, apply('<indent>switch(o)'))
@@ -346,7 +348,7 @@ local function to_enumerator_string_enum_snippet(node, specifier)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier> std::string enumerator(<classname> o)'))
+    table.insert(lines, apply('<specifier><attributes> std::string enumerator(<classname> o)'))
     table.insert(lines, apply('{'))
     table.insert(lines, apply('<indent>std::string r;'))
     table.insert(lines, apply('<indent>switch(o)'))
@@ -472,9 +474,15 @@ function M.setup(opts)
         if opts.keepindent ~= nil then
             G.keepindent = opts.keepindent
         end
+        if opts.attributes ~= nil then
+            G.attributes = opts.attributes
+        end
         if opts.cnv then
             if opts.cnv.keepindent ~= nil then
                 G.keepindent = opts.cnv.keepindent
+            end
+            if opts.cnv.attributes ~= nil then
+                G.attributes = opts.cnv.attributes
             end
             if opts.cnv.enum then
                 if opts.cnv.enum.value then
