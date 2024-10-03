@@ -134,10 +134,6 @@ local function is_switch(node)
     return node and node.role == "statement" and node.kind == "Switch"
 end
 
-local function is_enum(node)
-    return node and node.role == "declaration" and node.kind == "Enum" and not string.find(node.detail, "unnamed ")
-end
-
 local lspclient = nil
 
 --- We need to capture a reference to the LSP client so we implement this callback
@@ -257,7 +253,7 @@ function M.completion_items()
 
     local items = {}
 
-    if is_enum(condition_definition_node) then
+    if ast.is_enum(condition_definition_node) then
         table.insert(items, case_enum_item(condition_definition_node))
     end
 

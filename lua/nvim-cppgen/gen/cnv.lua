@@ -408,14 +408,6 @@ end
 
 local M = {}
 
-local function is_enum(node)
-    return node and node.role == "declaration" and node.kind == "Enum" and not string.find(node.detail, "unnamed ")
-end
-
-local function is_class(node)
-    return node and node.role == "declaration" and node.kind == "CXXRecord"
-end
-
 local enclosing_node = nil
 local preceding_node = nil
 
@@ -428,12 +420,12 @@ end
 --- Generator will call this method with new candidate node
 function M.visit(node, line)
     -- We can generate conversion function for preceding enumeration node
-    if ast.precedes(node, line) and is_enum(node) then
+    if ast.precedes(node, line) and ast.is_enum(node) then
         log.debug("visit:", "Accepted preceding node", ast.details(node))
         preceding_node = node
     end
     -- We capture enclosing class node since the specifier for the enum conversion depends on it
-    if ast.encloses(node, line) and is_class(node) then
+    if ast.encloses(node, line) and ast.is_class(node) then
         log.debug("visit:", "Accepted enclosing node", ast.details(node))
         enclosing_node = node
     end
@@ -450,8 +442,8 @@ function M.completion_items()
 
     local items = {}
 
-    if is_enum(preceding_node) then
-        if is_class(enclosing_node) then
+    if ast.is_enum(preceding_node) then
+        if ast.is_class(enclosing_node) then
             table.insert(items, from_string_member_enum_item(preceding_node))
             table.insert(items, friend_to_string_enum_item(preceding_node))
             table.insert(items, friend_to_enumerator_string_enum_item(preceding_node))

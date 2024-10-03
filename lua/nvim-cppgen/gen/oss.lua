@@ -113,7 +113,7 @@ local function shift_class_snippet(node, specifier)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier><attributes> std::ostream& operator<<(std::ostream& s, const <classname>& o)'))
+    table.insert(lines, apply('<attributes><specifier> std::ostream& operator<<(std::ostream& s, const <classname>& o)'))
     table.insert(lines, apply('{'))
     if G.keepindent then
         table.insert(lines, apply('<indent>// clang-format off'))
@@ -244,7 +244,7 @@ local function shift_enum_snippet(node, specifier)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier><attributes> std::ostream& operator<<(std::ostream& s, <classname> o)'))
+    table.insert(lines, apply('<attributes><specifier> std::ostream& operator<<(std::ostream& s, <classname> o)'))
     table.insert(lines, apply('{'))
     table.insert(lines, apply('<indent>switch(o)'))
     table.insert(lines, apply('<indent>{'))
@@ -304,14 +304,6 @@ end
 
 local M = {}
 
-local function is_enum(node)
-    return node and node.role == "declaration" and node.kind == "Enum" and not string.find(node.detail, "unnamed ")
-end
-
-local function is_class(node)
-    return node and node.role == "declaration" and node.kind == "CXXRecord"
-end
-
 local enclosing_node = nil
 local preceding_node = nil
 
@@ -324,12 +316,12 @@ end
 --- Generator will call this method with new candidate node
 function M.visit(node, line)
     -- We can generate shift operator for enclosing class node
-    if ast.encloses(node, line) and is_class(node) then
+    if ast.encloses(node, line) and ast.is_class(node) then
         log.debug("visit:", "Accepted enclosing node", ast.details(node))
         enclosing_node = node
     end
     -- We can generate shift operator for preceding enumeration and class nodes
-    if ast.precedes(node, line) and (is_enum(node) or is_class(node)) then
+    if ast.precedes(node, line) and (ast.is_enum(node) or ast.is_class(node)) then
         log.debug("visit:", "Accepted preceding node", ast.details(node))
         preceding_node = node
     end
@@ -346,19 +338,19 @@ function M.completion_items()
 
     local items = {}
 
-    if is_class(preceding_node) then
-        if is_class(enclosing_node) then
+    if ast.is_class(preceding_node) then
+        if ast.is_class(enclosing_node) then
             table.insert(items, friend_shift_class_item(preceding_node))
         else
             table.insert(items, inline_shift_class_item(preceding_node))
         end
     end
-    if is_class(enclosing_node) then
+    if ast.is_class(enclosing_node) then
         table.insert(items, friend_shift_class_item(enclosing_node))
     end
 
-    if is_enum(preceding_node) then
-        if is_class(enclosing_node) then
+    if ast.is_enum(preceding_node) then
+        if ast.is_class(enclosing_node) then
             table.insert(items, friend_shift_enum_item(preceding_node))
         else
             table.insert(items, inline_shift_enum_item(preceding_node))

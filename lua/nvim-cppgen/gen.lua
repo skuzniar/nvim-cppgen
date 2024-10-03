@@ -34,12 +34,14 @@ local function visit_relevant_nodes(symbols, line, callback)
         function(node)
             if ast.encloses(node, line) then
                 log.debug("Found enclosing node", ast.details(node))
+                log.trace(node)
                 callback(node, line)
             end
         end,
         function(node)
             if ast.precedes(node, line) then
                 log.debug("Found preceding node", ast.details(node))
+                log.trace(node)
                 callback(node, line)
             end
         end

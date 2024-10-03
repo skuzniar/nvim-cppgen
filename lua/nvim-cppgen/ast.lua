@@ -100,4 +100,16 @@ function M.phantom(node)
     return node.range ~= nil and node.range['end'].line == node.range['start'].line
 end
 
+function M.is_enum(node)
+    return node and node.role == "declaration" and node.kind == "Enum" and not string.find(node.detail, "unnamed ")
+end
+
+function M.is_class(node)
+    return node and node.role == "declaration" and (node.kind == "CXXRecord" or node.kind == "ClassTemplate")
+end
+
+function M.is_class_template(node)
+    return node and node.role == "declaration" and node.kind == "ClassTemplate"
+end
+
 return M

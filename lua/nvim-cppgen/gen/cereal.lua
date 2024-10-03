@@ -234,10 +234,6 @@ local function save_class_inline_item(node)
     }
 end
 
-local function is_class(node)
-    return node and node.role == "declaration" and node.kind == "CXXRecord"
-end
-
 local enclosing_node = nil
 local preceding_node = nil
 
@@ -252,12 +248,12 @@ end
 --- Generator will call this method with new candidate node
 function M.visit(node, line)
     -- We can generate serialization function for enclosing class node
-    if ast.encloses(node, line) and is_class(node) then
+    if ast.encloses(node, line) and ast.is_class(node) then
         log.debug("visit:", "Accepted enclosing node", ast.details(node))
         enclosing_node = node
     end
     -- We can generate serialization function for preceding class node
-    if ast.precedes(node, line) and is_class(node) then
+    if ast.precedes(node, line) and ast.is_class(node) then
         log.debug("visit:", "Accepted preceding node", ast.details(node))
         preceding_node = node
     end
@@ -274,10 +270,10 @@ function M.completion_items()
 
     local items = {}
 
-    if is_class(enclosing_node) then
+    if ast.is_class(enclosing_node) then
         table.insert(items, save_class_member_item(enclosing_node))
     end
-    if is_class(preceding_node) then
+    if ast.is_class(preceding_node) then
         table.insert(items, save_class_inline_item(preceding_node))
     end
 
