@@ -5,7 +5,7 @@ local utl = require('nvim-cppgen.gen.util')
 local cmp = require('cmp')
 
 ---------------------------------------------------------------------------------------------------
--- Enum-related function generators.
+-- Enum function generators.
 ---------------------------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------------------------
@@ -58,8 +58,8 @@ local function apply(format)
 end
 
 -- Collect names and values for an enum type node.
-local function enum_labels_and_values(node)
-    log.trace("enum_labels_and_values:", ast.details(node))
+local function labels_and_values(node)
+    log.trace("labels_and_values:", ast.details(node))
 
     local lsandvs = {}
     for _,r in ipairs(utl.enum_records(node)) do
@@ -94,7 +94,7 @@ local function to_string_snippet(node, specifier)
     P.classname  = ast.name(node)
     P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
-    local records = enum_labels_and_values(node)
+    local records = labels_and_values(node)
     local maxllen, maxvlen = max_lengths(records)
 
     local lines = {}
@@ -281,15 +281,15 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Generate output stream shift operator
 ---------------------------------------------------------------------------------------------------
-local function shift_enum_snippet(node, specifier)
-    log.trace("shift_enum_snippet:", ast.details(node))
+local function shift_snippet(node, specifier)
+    log.trace("shift_snippet:", ast.details(node))
 
     P.specifier  = specifier
     P.attributes = G.attributes and ' ' .. G.attributes or ''
     P.classname  = ast.name(node)
     P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
-    local records = enum_labels_and_values(node)
+    local records = labels_and_values(node)
     local maxllen, maxvlen = max_lengths(records)
 
     local lines = {}
@@ -325,7 +325,7 @@ end
 -- Generate output stream friend shift operator completion item for an enum type node.
 local function friend_shift_item(node)
     log.trace("friend_shift_item:", ast.details(node))
-    local lines = shift_enum_snippet(node, 'friend')
+    local lines = shift_snippet(node, 'friend')
     return
     {
         label            = lines[1] or 'friend',
@@ -340,7 +340,7 @@ end
 -- Generate output stream inline shift operator completion item for an enum type node.
 local function inline_shift_item(node)
     log.trace("inline_shift_item:", ast.details(node))
-    local lines = shift_enum_snippet(node, 'inline')
+    local lines = shift_snippet(node, 'inline')
     return
     {
         label            = lines[1] or 'inline',

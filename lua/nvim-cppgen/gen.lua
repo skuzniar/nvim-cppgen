@@ -9,7 +9,7 @@ local log = require('nvim-cppgen.log')
 
 -- TODO - populate during configuration
 local G = {
-    require('nvim-cppgen.gen.ostream'),
+    require('nvim-cppgen.gen.class'),
     require('nvim-cppgen.gen.enum'),
     require('nvim-cppgen.gen.cereal'),
     require('nvim-cppgen.gen.switch')

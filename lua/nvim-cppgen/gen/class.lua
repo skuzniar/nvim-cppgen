@@ -4,7 +4,7 @@ local log = require('nvim-cppgen.log')
 local cmp = require('cmp')
 
 ---------------------------------------------------------------------------------------------------
--- Output stream shift operators generator.
+-- Class function generators.
 ---------------------------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------------------------
@@ -80,7 +80,7 @@ local function apply(format)
 end
 
 -- Collect names and values for a class type node.
-local function class_labels_and_values(node, object)
+local function labels_and_values(node, object)
     local records = {}
     ast.visit_children(node,
         function(n)
@@ -100,8 +100,8 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Generate output stream shift operator for a class type node.
 ---------------------------------------------------------------------------------------------------
-local function shift_class_snippet(node, specifier)
-    log.debug("shift_class_snippet:", ast.details(node))
+local function shift_snippet(node, specifier)
+    log.debug("shift_snippet:", ast.details(node))
 
     P.specifier  = specifier
     P.attributes = G.attributes and ' ' .. G.attributes or ''
@@ -109,12 +109,12 @@ local function shift_class_snippet(node, specifier)
     P.separator  = G.class.separator
     P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
-    local records = class_labels_and_values(node, 'o')
+    local records = labels_and_values(node, 'o')
     local maxllen, maxvlen = max_lengths(records)
 
     local lines = {}
 
-    table.insert(lines, apply('<attributes><specifier> std::ostream& operator<<(std::ostream& s, const <classname>& o)'))
+    table.insert(lines, apply('<specifier><attributes> std::ostream& operator<<(std::ostream& s, const <classname>& o)'))
     table.insert(lines, apply('{'))
     if G.keepindent then
         table.insert(lines, apply('<indent>// clang-format off'))
@@ -150,9 +150,9 @@ local function shift_class_snippet(node, specifier)
 end
 
 -- Generate output stream friend shift operator completion item for a class type node.
-local function friend_shift_class_item(node)
-    log.trace("friend_shift_class_item:", ast.details(node))
-    local lines = shift_class_snippet(node, 'friend')
+local function friend_shift_item(node)
+    log.trace("friend_shift_item:", ast.details(node))
+    local lines = shift_snippet(node, 'friend')
     return
     {
         label            = lines[1] or 'friend',
@@ -165,9 +165,9 @@ local function friend_shift_class_item(node)
 end
 
 -- Generate output stream inline shift operator completion item for a class type node.
-local function inline_shift_class_item(node)
-    log.trace("inline_shift_class_item:", ast.details(node))
-    local lines = shift_class_snippet(node, 'inline')
+local function inline_shift_item(node)
+    log.trace("inline_shift_item:", ast.details(node))
+    local lines = shift_snippet(node, 'inline')
     return
     {
         label            = lines[1] or 'inline',
@@ -217,13 +217,13 @@ function M.completion_items()
 
     if ast.is_class(preceding_node) then
         if ast.is_class(enclosing_node) then
-            table.insert(items, friend_shift_class_item(preceding_node))
+            table.insert(items, friend_shift_item(preceding_node))
         else
-            table.insert(items, inline_shift_class_item(preceding_node))
+            table.insert(items, inline_shift_item(preceding_node))
         end
     end
     if ast.is_class(enclosing_node) then
-        table.insert(items, friend_shift_class_item(enclosing_node))
+        table.insert(items, friend_shift_item(enclosing_node))
     end
 
     return items
@@ -240,26 +240,24 @@ function M.setup(opts)
         if opts.attributes ~= nil then
             G.attributes = opts.attributes
         end
-        if opts.ostream then
-            if opts.ostream.keepindent ~= nil then
-                G.keepindent = opts.ostream.keepindent
+        if opts.class then
+            if opts.class.keepindent ~= nil then
+                G.keepindent = opts.class.keepindent
             end
-            if opts.ostream.attributes ~= nil then
-                G.attributes = opts.ostream.attributes
+            if opts.class.attributes ~= nil then
+                G.attributes = opts.class.attributes
             end
-            if opts.ostream.class then
-                if opts.ostream.class.separator then
-                    G.class.separator = opts.ostream.class.separator
-                end
-                if opts.ostream.class.preamble then
-                    G.class.preamble = opts.ostream.class.preamble
-                end
-                if opts.ostream.class.label then
-                    G.class.label = opts.ostream.class.label
-                end
-                if opts.ostream.class.value then
-                    G.class.value = opts.ostream.class.value
-                end
+            if opts.class.separator then
+                G.class.separator = opts.class.separator
+            end
+            if opts.class.preamble then
+                G.class.preamble = opts.class.preamble
+            end
+            if opts.class.label then
+                G.class.label = opts.class.label
+            end
+            if opts.class.value then
+                G.class.value = opts.class.value
             end
         end
     end

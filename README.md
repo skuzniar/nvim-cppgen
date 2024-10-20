@@ -18,35 +18,33 @@ Neovim C++ code generator.
         },
 
         keepindent = true,
-        -- Output Stream Shift operator generator
-        oss = {
-            class = {
-                separator = "' '",
-                preamble  = function(classname)
-                    return '[' .. classname .. ']='
-                end,
-                label = function(classname, fieldname, camelized)
-                    return camelized .. ': '
-                end,
-                value = function(fieldref, type)
-                    return fieldref
-                end
-            },
-            enum = {
-                value = function(mnemonic, value)
-                    if (value) then
-                        return '"' .. value .. '(' .. mnemonic .. ')' .. '"'
-                    else
-                        return '"' .. mnemonic .. '"'
-                    end
-                end
-            },
+
+        -- Generators for Class type
+        class = {
+            separator = "' '",
+            preamble  = function(classname)
+                return '[' .. classname .. ']='
+            end,
+            label = function(classname, fieldname, camelized)
+                return camelized .. ': '
+            end,
+            value = function(fieldref, type)
+                return fieldref
+            end
         },
-        -- Conversion functions generator
-        cnv = {
-            -- Nothing yet
+
+        -- Generators for Enum type
+        enum = {
+            value = function(mnemonic, value)
+                if (value) then
+                    return '"' .. value .. '(' .. mnemonic .. ')' .. '"'
+                else
+                    return '"' .. mnemonic .. '"'
+                end
+            end
         },
-        -- Class serialization using cereal library
+
+        -- JSON serialization using cereal library
         cereal = {
             class = {
                 label = function(classname, fieldname, camelized)
@@ -57,6 +55,7 @@ Neovim C++ code generator.
                 end
             },
         }
+
         -- Switch statement generator for enum types
         switch = {
             keepindent = false,
