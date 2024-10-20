@@ -122,6 +122,7 @@ local function class_labels_and_values(node, object)
                     end
                 end
             end
+            return true
         end
     )
     return records

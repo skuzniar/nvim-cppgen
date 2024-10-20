@@ -56,6 +56,7 @@ local function enum_labels_and_values(node)
                 record.value = G.enum.value(ast.name(node), ast.name(n))
                 table.insert(records, record)
             end
+            return true
         end
     )
     return records

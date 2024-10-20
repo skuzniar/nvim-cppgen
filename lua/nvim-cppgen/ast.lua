@@ -24,7 +24,9 @@ end
 function M.visit_children(node, f)
     if node.children then
         for _, child in ipairs(node.children) do
-            f(child)
+            if not f(child) then
+                return
+            end
 		end
     end
 end

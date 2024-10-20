@@ -91,6 +91,7 @@ local function class_labels_and_values(node, object)
                 record.value = G.class.value(object .. '.' .. record.field, ast.type(n))
                 table.insert(records, record)
             end
+            return true
         end
     )
     return records
@@ -178,130 +179,6 @@ local function inline_shift_class_item(node)
     }
 end
 
----------------------------------------------------------------------------------------------------
--- Enum specific parameters
----------------------------------------------------------------------------------------------------
-G.enum = {}
-
--- Create the value string for the member field. By default we use both, the value and mnemonic
-G.enum.value = function(mnemonic, value)
-    if (value) then
-        return '"' .. value .. '(' .. mnemonic .. ')' .. '"'
-    else
-        return '"' .. mnemonic .. '"'
-    end
-end
-
--- Attempt to find integral constant for the enum element
-local function integral_literal(node)
-    log.trace("integral_literal:", ast.details(node))
-
-    local result = nil
-    ast.visit_children(node,
-        function(n)
-            if n.kind == "IntegerLiteral" or n.kind == "CharacterLiteral" then
-                result = n.detail
-            else
-                result = integral_literal(n)
-            end
-            if (result) then
-                return result
-            end
-        end
-    )
-    return result
-end
-
--- Collect names and values for an enum type node.
-local function enum_labels_and_values(node)
-    local records = {}
-    ast.visit_children(node,
-        function(n)
-            if n.kind == "EnumConstant" then
-                local record = {}
-                record.label = ast.name(node) .. '::' .. ast.name(n)
-                record.value = G.enum.value(ast.name(n), integral_literal(n))
-                table.insert(records, record)
-            end
-        end
-    )
-    return records
-end
-
----------------------------------------------------------------------------------------------------
--- Generate output stream shift operator for an enum type node.
----------------------------------------------------------------------------------------------------
-local function shift_enum_snippet(node, specifier)
-    log.trace("shift_enum_snippet:", ast.details(node))
-
-    P.specifier  = specifier
-    P.attributes = G.attributes and ' ' .. G.attributes or ''
-    P.classname  = ast.name(node)
-    P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
-
-    local records = enum_labels_and_values(node)
-    local maxllen, maxvlen = max_lengths(records)
-
-    local lines = {}
-
-    table.insert(lines, apply('<attributes><specifier> std::ostream& operator<<(std::ostream& s, <classname> o)'))
-    table.insert(lines, apply('{'))
-    table.insert(lines, apply('<indent>switch(o)'))
-    table.insert(lines, apply('<indent>{'))
-    if G.keepindent then
-        table.insert(lines, apply('<indent><indent>// clang-format off'))
-    end
-
-    for _,r in ipairs(records) do
-        P.label     = r.label
-        P.value     = r.value
-        P.labelpad  = string.rep(' ', maxllen - string.len(r.label))
-        P.valuepad  = string.rep(' ', maxvlen - string.len(r.value))
-        table.insert(lines, apply('<indent><indent>case <label>:<labelpad> s << <value>;<valuepad> break;'))
-    end
-
-    if G.keepindent then
-        table.insert(lines, apply('<indent><indent>// clang-format on'))
-    end
-    table.insert(lines, apply('<indent>};'))
-
-    table.insert(lines, apply('<indent>return s;'))
-    table.insert(lines, apply('}'))
-
-    for _,l in ipairs(lines) do log.debug(l) end
-    return lines
-end
-
--- Generate output stream friend shift operator completion item for an enum type node.
-local function friend_shift_enum_item(node)
-    log.trace("friend_shift_enum_item:", ast.details(node))
-    local lines = shift_enum_snippet(node, 'friend')
-    return
-    {
-        label            = lines[1] or 'friend',
-        kind             = cmp.lsp.CompletionItemKind.Snippet,
-        insertTextMode   = 2,
-        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = table.concat(lines, '\n'),
-        documentation    = table.concat(lines, '\n')
-    }
-end
-
--- Generate output stream inline shift operator completion item for an enum type node.
-local function inline_shift_enum_item(node)
-    log.trace("inline_shift_enum_item:", ast.details(node))
-    local lines = shift_enum_snippet(node, 'inline')
-    return
-    {
-        label            = lines[1] or 'inline',
-        kind             = cmp.lsp.CompletionItemKind.Snippet,
-        insertTextMode   = 2,
-        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = table.concat(lines, '\n'),
-        documentation    = table.concat(lines, '\n')
-    }
-end
-
 local M = {}
 
 local enclosing_node = nil
@@ -349,14 +226,6 @@ function M.completion_items()
         table.insert(items, friend_shift_class_item(enclosing_node))
     end
 
-    if ast.is_enum(preceding_node) then
-        if ast.is_class(enclosing_node) then
-            table.insert(items, friend_shift_enum_item(preceding_node))
-        else
-            table.insert(items, inline_shift_enum_item(preceding_node))
-        end
-    end
-
     return items
 end
 
@@ -371,30 +240,25 @@ function M.setup(opts)
         if opts.attributes ~= nil then
             G.attributes = opts.attributes
         end
-        if opts.oss then
-            if opts.oss.keepindent ~= nil then
-                G.keepindent = opts.oss.keepindent
+        if opts.ostream then
+            if opts.ostream.keepindent ~= nil then
+                G.keepindent = opts.ostream.keepindent
             end
-            if opts.oss.attributes ~= nil then
-                G.attributes = opts.oss.attributes
+            if opts.ostream.attributes ~= nil then
+                G.attributes = opts.ostream.attributes
             end
-            if opts.oss.class then
-                if opts.oss.class.separator then
-                    G.class.separator = opts.oss.class.separator
+            if opts.ostream.class then
+                if opts.ostream.class.separator then
+                    G.class.separator = opts.ostream.class.separator
                 end
-                if opts.oss.class.preamble then
-                    G.class.preamble = opts.oss.class.preamble
+                if opts.ostream.class.preamble then
+                    G.class.preamble = opts.ostream.class.preamble
                 end
-                if opts.oss.class.label then
-                    G.class.label = opts.oss.class.label
+                if opts.ostream.class.label then
+                    G.class.label = opts.ostream.class.label
                 end
-                if opts.oss.class.value then
-                    G.class.value = opts.oss.class.value
-                end
-            end
-            if opts.oss.enum then
-                if opts.oss.enum.value then
-                    G.enum.value = opts.oss.enum.value
+                if opts.ostream.class.value then
+                    G.class.value = opts.ostream.class.value
                 end
             end
         end
