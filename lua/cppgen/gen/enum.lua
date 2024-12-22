@@ -1,6 +1,6 @@
-local ast = require('nvim-cppgen.ast')
-local log = require('nvim-cppgen.log')
-local utl = require('nvim-cppgen.gen.util')
+local ast = require('cppgen.ast')
+local log = require('cppgen.log')
+local utl = require('cppgen.gen.util')
 
 local cmp = require('cmp')
 

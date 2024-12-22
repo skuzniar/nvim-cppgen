@@ -1,4 +1,4 @@
-local log = require('nvim-cppgen.log')
+local log = require('cppgen.log')
 
 ---------------------------------------------------------------------------------------------------
 --- AST utilities

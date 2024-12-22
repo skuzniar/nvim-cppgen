@@ -1,5 +1,5 @@
-local gen = require('nvim-cppgen.gen')
-local log = require('nvim-cppgen.log')
+local gen = require('cppgen.gen')
+local log = require('cppgen.log')
 
 ---------------------------------------------------------------------------------------------------
 -- Code completion source module.
@@ -12,7 +12,7 @@ local log = require('nvim-cppgen.log')
 ---------------------------------------------------------------------------------------------------
 local G = {}
 
-G.disclaimer = '// Auto-generated using nvim-cppgen'
+G.disclaimer = '// Auto-generated using cppgen'
 
 --- Exported functions
 local M = {}

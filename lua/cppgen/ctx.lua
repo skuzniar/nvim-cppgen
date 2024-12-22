@@ -1,4 +1,4 @@
-local log = require('nvim-cppgen.log')
+local log = require('cppgen.log')
 
 ---------------------------------------------------------------------------------------------------
 --- Context capture module. Captures cursor position when entering insert mode.

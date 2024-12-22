@@ -1,6 +1,6 @@
-local ast = require('nvim-cppgen.ast')
-local ctx = require('nvim-cppgen.ctx')
-local log = require('nvim-cppgen.log')
+local ast = require('cppgen.ast')
+local ctx = require('cppgen.ctx')
+local log = require('cppgen.log')
 
 ---------------------------------------------------------------------------------------------------
 -- 1. Collection of code generators. Gathers code completion items from specialized generators.
@@ -9,10 +9,10 @@ local log = require('nvim-cppgen.log')
 
 -- TODO - populate during configuration
 local G = {
-    require('nvim-cppgen.gen.class'),
-    require('nvim-cppgen.gen.enum'),
-    require('nvim-cppgen.gen.cereal'),
-    require('nvim-cppgen.gen.switch')
+    require('cppgen.gen.class'),
+    require('cppgen.gen.enum'),
+    require('cppgen.gen.cereal'),
+    require('cppgen.gen.switch')
 }
 
 --- Reset code generators

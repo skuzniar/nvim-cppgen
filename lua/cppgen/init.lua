@@ -1,5 +1,5 @@
-local cgn = require("nvim-cppgen.cgn")
-local log = require('nvim-cppgen.log')
+local cgn = require("cppgen.cgn")
+local log = require('cppgen.log')
 
 local M = {}
 

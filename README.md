@@ -1,9 +1,9 @@
-# Nvim-cppgen
-Neovim C++ code generator.
+# nvim-cppgen
+Neovim C++ code snippets generator.
 
 ## Install
 
-```txt
+```lua
 {
     "skuzniar/nvim-cppgen",
     dependencies = {
@@ -12,7 +12,7 @@ Neovim C++ code generator.
     opts =
     {
         log = {
-            plugin      = 'nvim-cppgen',
+            plugin      = 'cppgen',
             level       = 'debug',
             use_console = false
         },
