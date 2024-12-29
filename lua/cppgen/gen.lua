@@ -87,7 +87,7 @@ function M.generate(bufnr)
         log.info("Generating code in buffer", bufnr)
         local total = {}
         for _,g in pairs(G) do
-            local items = g.completion_items();
+            local items = g.generate();
             for _,i in ipairs(items) do
                 table.insert(total, i)
             end
@@ -122,6 +122,9 @@ function M.attached(client, bufnr)
     end
 end
 
+---------------------------------------------------------------------------------------------------
+--- Entering insert mode. Reset generators and request AST data. Upon completion visit AST nodes.
+---------------------------------------------------------------------------------------------------
 function M.insert_enter(client, bufnr)
     log.trace("Entered insert mode client", client.id, "buffer", bufnr)
 

@@ -231,7 +231,9 @@ local function get_condition_type_definition(node)
     end
 end
 
---- Generator will call this method with new candidate node
+---------------------------------------------------------------------------------------------------
+--- Generator will call this method with a node and a cursor line location.
+---------------------------------------------------------------------------------------------------
 function M.visit(node, line)
     -- We can attempt to generate the switch statement if we are inside of a switch node
     if ast.encloses(node, line) and is_switch(node) then
@@ -243,14 +245,18 @@ function M.visit(node, line)
     end
 end
 
+---------------------------------------------------------------------------------------------------
 --- Generator will call this method to check if the module can generate code
+---------------------------------------------------------------------------------------------------
 function M.available()
     return condition_definition_node ~= nil
 end
 
+---------------------------------------------------------------------------------------------------
 -- Generate from string functions for an enum nodes.
-function M.completion_items()
-    log.trace("completion_items:", ast.details(condition_definition_node))
+---------------------------------------------------------------------------------------------------
+function M.generate()
+    log.trace("generate:", ast.details(condition_definition_node))
 
     local items = {}
 

@@ -56,9 +56,7 @@ local function camelize(s)
     return (string.gsub(s, '%W*(%w+)', capitalize))
 end
 
----------------------------------------------------------------------------------------------------
 -- Local parameters for code generation.
----------------------------------------------------------------------------------------------------
 local P = {}
 
 -- Apply parameters to the format string 
@@ -97,9 +95,7 @@ local function labels_and_values(node, object)
     return records
 end
 
----------------------------------------------------------------------------------------------------
 -- Generate output stream shift operator for a class type node.
----------------------------------------------------------------------------------------------------
 local function shift_snippet(node, specifier)
     log.debug("shift_snippet:", ast.details(node))
 
@@ -184,13 +180,17 @@ local M = {}
 local enclosing_node = nil
 local preceding_node = nil
 
---- Generator will call this method before presenting a set of new candidate nodes
+---------------------------------------------------------------------------------------------------
+--- Generator will call this method before presenting a set of new candidate nodes.
+---------------------------------------------------------------------------------------------------
 function M.reset()
     enclosing_node = nil
     preceding_node = nil
 end
 
---- Generator will call this method with new candidate node
+---------------------------------------------------------------------------------------------------
+--- Generator will call this method with a node and a cursor line location.
+---------------------------------------------------------------------------------------------------
 function M.visit(node, line)
     -- We can generate shift operator for enclosing class node
     if ast.encloses(node, line) and ast.is_class(node) then
@@ -204,14 +204,18 @@ function M.visit(node, line)
     end
 end
 
---- Generator will call this method to check if the module can generate code
+---------------------------------------------------------------------------------------------------
+--- Generator will call this method to check if the module can generate code.
+---------------------------------------------------------------------------------------------------
 function M.available()
     return enclosing_node ~= nil or preceding_node ~= nil
 end
 
+---------------------------------------------------------------------------------------------------
 -- Generate plain output stream shift operator for a class and enum nodes.
-function M.completion_items()
-    log.trace("completion_items:", ast.details(preceding_node), ast.details(enclosing_node))
+---------------------------------------------------------------------------------------------------
+function M.generate()
+    log.trace("generate:", ast.details(preceding_node), ast.details(enclosing_node))
 
     local items = {}
 

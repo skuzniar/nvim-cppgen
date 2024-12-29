@@ -10,7 +10,6 @@ local csrcid = nil
 local function attach(client, bufnr)
     log.info("Client", log.squoted(client.name), "attached to", log.squoted(vim.api.nvim_buf_get_name(bufnr)))
 
-    -- Inform code generator that LPS client has been attached to the buffer
 	cgn.attached(client, bufnr)
 
 	local group = vim.api.nvim_create_augroup(cppgen, { clear = false })

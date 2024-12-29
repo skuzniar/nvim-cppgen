@@ -352,7 +352,6 @@ local function inline_shift_item(node)
     }
 end
 
----------------------------------------------------------------------------------------------------
 --- Exported functions
 ---------------------------------------------------------------------------------------------------
 local M = {}
@@ -366,7 +365,9 @@ function M.reset()
     preceding_node = nil
 end
 
---- Generator will call this method with new candidate node
+---------------------------------------------------------------------------------------------------
+--- Generator will call this method with a node and a cursor line location.
+---------------------------------------------------------------------------------------------------
 function M.visit(node, line)
     -- We can generate conversion function for preceding enumeration node
     if ast.precedes(node, line) and ast.is_enum(node) then
@@ -380,14 +381,18 @@ function M.visit(node, line)
     end
 end
 
+---------------------------------------------------------------------------------------------------
 --- Generator will call this method to check if the module can generate code
+---------------------------------------------------------------------------------------------------
 function M.available()
     return enclosing_node ~= nil or preceding_node ~= nil
 end
 
+---------------------------------------------------------------------------------------------------
 -- Generate from string functions for an enum nodes.
-function M.completion_items()
-    log.trace("completion_items:", ast.details(preceding_node), ast.details(enclosing_node))
+---------------------------------------------------------------------------------------------------
+function M.generate()
+    log.trace("generate:", ast.details(preceding_node), ast.details(enclosing_node))
 
     local items = {}
 
