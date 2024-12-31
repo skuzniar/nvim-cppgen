@@ -20,7 +20,7 @@ G.keepindent = true
 G.class = {}
 G.class.separator = "' '"
 
--- Create the string that will be printed before any member fierlds.
+-- Create the string that will be printed before class member fields are printed.
 G.class.preamble = function(classname)
     return '[' .. classname .. ']='
 end
