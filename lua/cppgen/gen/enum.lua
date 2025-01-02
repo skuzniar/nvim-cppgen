@@ -412,6 +412,18 @@ function M.generate()
 end
 
 ---------------------------------------------------------------------------------------------------
+--- Status callback
+---------------------------------------------------------------------------------------------------
+function M.status()
+    return {
+        { "to_string",    "Generate to string enum converter"   },
+        { "from_string",  "Generate from string enum converter" },
+        { "inline",       "Generate enum output stream shift operator" },
+        { "friend",       "Generate enum output stream shift operator" }
+    }
+end
+
+---------------------------------------------------------------------------------------------------
 --- Initialization callback
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)

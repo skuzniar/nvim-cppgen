@@ -1,11 +1,11 @@
-# nvim-cppgen
+# cppgen.nvim
 Neovim C++ code snippets generator.
 
 ## Install
 
 ```lua
 {
-    "skuzniar/nvim-cppgen",
+    "skuzniar/cppgen.nvim",
     dependencies = {
         "neovim/nvim-lspconfig"
     },

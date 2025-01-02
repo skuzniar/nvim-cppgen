@@ -108,6 +108,22 @@ function M.setup(opts)
 end
 
 ---------------------------------------------------------------------------------------------------
+--- Status callback
+---------------------------------------------------------------------------------------------------
+function M.status()
+    log.info("Collect status from all generators")
+    local total = {}
+    for _,g in pairs(G) do
+        local items = g.status();
+        for _,i in ipairs(items) do
+            table.insert(total, i)
+        end
+    end
+    table.sort(total, function(a, b) return a[1] < b[1] end)
+    return total
+end
+
+---------------------------------------------------------------------------------------------------
 --- Code generation callbacks
 ---------------------------------------------------------------------------------------------------
 local lspclient = nil
