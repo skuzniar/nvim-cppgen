@@ -41,28 +41,25 @@ local function attach(client, bufnr)
     end
 end
 
---- Place to define global options
-local function globals(opts)
-	if opts then
-	    if not opts.attributes then
-            opts.attributes = '[[cppgen::auto]]'
-        end
-	end
-end
-
 --- Setup
 function M.setup(opts)
-    -- We configure log module ourselves
-	if opts and opts.log then
-        log.new(opts.log, true)
-	end
+    -- Set global defaults if not provided
+    if not opts.disclaimer then
+        opts.disclaimer = '// Auto-generated using cppgen'
+    end
+    if not opts.attributes then
+        opts.attributes = '[[cppgen::auto]]'
+    end
+    if opts.keepindent == nil then
+        opts.keepindent = true
+    end
+    if not opts.log then
+        opts.log = { plugin = cppgen, level = 'info', use_console = false }
+    end
 
-    log.trace("setup:", opts)
+    log.new(opts.log, true)
 
-    -- Add global options
-    globals(opts)
-
-    -- Setup code generator
+    log.trace(opts)
     cgn.setup(opts)
 
 	vim.api.nvim_create_autocmd("LspAttach", {

@@ -37,7 +37,7 @@ Neovim C++ code snippets generator.
         enum = {
             value = function(mnemonic, value)
                 if (value) then
-                    return '"' .. value .. '(' .. mnemonic .. ')' .. '"'
+                    return '"' .. value .. ' (' .. mnemonic .. ')' .. '"'
                 else
                     return '"' .. mnemonic .. '"'
                 end

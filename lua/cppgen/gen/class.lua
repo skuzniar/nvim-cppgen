@@ -13,6 +13,7 @@ local cmp = require('cmp')
 local G = {}
 
 G.keepindent = true
+G.attributes = ''
 
 ---------------------------------------------------------------------------------------------------
 -- Class specific parameters
@@ -145,34 +146,40 @@ local function shift_snippet(node, specifier)
     return lines
 end
 
--- Generate output stream friend shift operator completion item for a class type node.
-local function friend_shift_item(node)
-    log.trace("friend_shift_item:", ast.details(node))
-    local lines = shift_snippet(node, 'friend')
+-- Duplicate the lines and generate two completion items that can be triggered by different labels.
+local function shift_items(lines)
     return
     {
-        label            = lines[1] or 'friend',
-        kind             = cmp.lsp.CompletionItemKind.Snippet,
-        insertTextMode   = 2,
-        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = table.concat(lines, '\n'),
-        documentation    = table.concat(lines, '\n')
+        {
+            label            = "shift",
+            kind             = cmp.lsp.CompletionItemKind.Snippet,
+            insertTextMode   = 2,
+            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+            insertText       = table.concat(lines, '\n'),
+            documentation    = table.concat(lines, '\n')
+        },
+        {
+            label            = string.match(lines[1], "^([%w]+)"),
+            kind             = cmp.lsp.CompletionItemKind.Snippet,
+            insertTextMode   = 2,
+            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+            insertText       = table.concat(lines, '\n'),
+            documentation    = table.concat(lines, '\n')
+        }
     }
 end
 
+
+-- Generate output stream friend shift operator completion item for a class type node.
+local function friend_shift_items(node)
+    log.trace("friend_shift_item:", ast.details(node))
+    return shift_items(shift_snippet(node, 'friend'))
+end
+
 -- Generate output stream inline shift operator completion item for a class type node.
-local function inline_shift_item(node)
+local function inline_shift_items(node)
     log.trace("inline_shift_item:", ast.details(node))
-    local lines = shift_snippet(node, 'inline')
-    return
-    {
-        label            = lines[1] or 'inline',
-        kind             = cmp.lsp.CompletionItemKind.Snippet,
-        insertTextMode   = 2,
-        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = table.concat(lines, '\n'),
-        documentation    = table.concat(lines, '\n')
-    }
+    return shift_items(shift_snippet(node, 'inline'))
 end
 
 local M = {}
@@ -221,15 +228,22 @@ function M.generate()
 
     if ast.is_class(preceding_node) then
         if ast.is_class(enclosing_node) then
-            table.insert(items, friend_shift_item(preceding_node))
+            for _,item in ipairs(friend_shift_items(preceding_node)) do
+                table.insert(items, item)
+            end
         else
-            table.insert(items, inline_shift_item(preceding_node))
+            for _,item in ipairs(inline_shift_items(preceding_node)) do
+                table.insert(items, item)
+            end
         end
     end
     if ast.is_class(enclosing_node) then
-        table.insert(items, friend_shift_item(enclosing_node))
+        for _,item in ipairs(friend_shift_items(enclosing_node)) do
+            table.insert(items, item)
+        end
     end
 
+    log.info("generate:", items)
     return items
 end
 
@@ -238,8 +252,7 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.status()
     return {
-        { "inline",  "Generate class output stream shift operator" },
-        { "friend",  "Generate class output stream shift operator" }
+        { "shift",  "Generate class output stream shift operator" }
     }
 end
 
@@ -251,14 +264,14 @@ function M.setup(opts)
         if opts.keepindent ~= nil then
             G.keepindent = opts.keepindent
         end
-        if opts.attributes ~= nil then
+        if opts.attributes then
             G.attributes = opts.attributes
         end
         if opts.class then
             if opts.class.keepindent ~= nil then
                 G.keepindent = opts.class.keepindent
             end
-            if opts.class.attributes ~= nil then
+            if opts.class.attributes then
                 G.attributes = opts.class.attributes
             end
             if opts.class.separator then

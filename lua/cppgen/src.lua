@@ -12,8 +12,6 @@ local log = require('cppgen.log')
 ---------------------------------------------------------------------------------------------------
 local G = {}
 
-G.disclaimer = '// Auto-generated using cppgen'
-
 --- Exported functions
 local M = {}
 
@@ -95,11 +93,7 @@ end
 --- Initialization callback
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
-    if opts.disclaimer then
-        G.disclaimer = opts.disclaimer
-    end
-
-    -- Pass the configuration to the snippet generator
+    G.disclaimer = opts.disclaimer or ''
     gen.setup(opts)
 end
 

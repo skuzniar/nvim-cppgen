@@ -66,7 +66,7 @@ local function pad(s, len)
     return s .. string.rep(' ', len - string.len(s))
 end
 
-vim.api.nvim_create_user_command('CPPGenStatus', function()
+vim.api.nvim_create_user_command('CPPGenInfo', function()
     local status = src.status()
 
     if #status > 0 then
