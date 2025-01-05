@@ -13,6 +13,7 @@ local cmp = require('cmp')
 local G = {}
 
 G.keepindent = true
+G.attributes = ''
 
 ---------------------------------------------------------------------------------------------------
 -- Class specific parameters
@@ -221,8 +222,8 @@ local function save_class_member_item(node)
     }
 end
 
-local function save_class_inline_item(node)
-    log.trace("save_class_inline_item:", ast.details(node))
+local function save_class_free_item(node)
+    log.trace("save_class_free_item:", ast.details(node))
     local lines = save_class_snippet(node, 'template <typename Archive>', false)
     return
     {
@@ -281,7 +282,7 @@ function M.generate()
         table.insert(items, save_class_member_item(enclosing_node))
     end
     if ast.is_class(preceding_node) then
-        table.insert(items, save_class_inline_item(preceding_node))
+        table.insert(items, save_class_free_item(preceding_node))
     end
 
     return items
