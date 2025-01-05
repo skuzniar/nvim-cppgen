@@ -1,3 +1,4 @@
+local opt = require("cppgen.opt")
 local cgn = require("cppgen.cgn")
 local log = require('cppgen.log')
 
@@ -43,24 +44,13 @@ end
 
 --- Setup
 function M.setup(opts)
-    -- Set global defaults if not provided
-    if not opts.disclaimer then
-        opts.disclaimer = '// Auto-generated using cppgen'
-    end
-    if not opts.attributes then
-        opts.attributes = '[[cppgen::auto]]'
-    end
-    if opts.keepindent == nil then
-        opts.keepindent = true
-    end
-    if not opts.log then
-        opts.log = { plugin = cppgen, level = 'info', use_console = false }
-    end
+    -- Combine default options with user options
+    local options = opt.merge(opt.default, opts)
 
-    log.new(opts.log, true)
+    log.new(options.log, true)
 
-    log.trace(opts)
-    cgn.setup(opts)
+    log.trace(options)
+    cgn.setup(options)
 
 	vim.api.nvim_create_autocmd("LspAttach", {
 		callback = function(args)
