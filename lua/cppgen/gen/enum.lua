@@ -9,36 +9,14 @@ local cmp = require('cmp')
 ---------------------------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------------------------
--- Global parameters for code generation.
+-- Global parameters for code generation. Initialized in setup.
 ---------------------------------------------------------------------------------------------------
 local G = {}
 
-G.keepindent = true
-G.attributes = ''
-
 ---------------------------------------------------------------------------------------------------
--- Enum specific parameters
----------------------------------------------------------------------------------------------------
-G.enum = {}
-
--- Create the value string for the member field. By default we use both, the value and mnemonic
-G.enum.value = function(mnemonic, value)
-    if (value) then
-        return '"' .. value .. ' ' .. '(' .. mnemonic .. ')' .. '"'
-    else
-        return '"' .. mnemonic .. '"'
-    end
-end
-
----------------------------------------------------------------------------------------------------
--- Parameters
+-- Local parameters for code generation.
 ---------------------------------------------------------------------------------------------------
 local P = {}
-
-P.camelize = false
-P.indt     = '   '
-P.equalsgn = ': '
-P.fieldsep = "' '"
 
 -- Apply parameters to the format string 
 local function apply(format)
@@ -66,7 +44,7 @@ local function labels_and_values(node)
     for _,r in ipairs(utl.enum_records(node)) do
         local record = {}
         record.label = ast.name(node) .. '::' .. r.label
-        record.value = G.enum.value(r.label, r.value)
+        record.value = G.enum.oshift.value(r.label, r.value)
         table.insert(lsandvs, record)
     end
     return lsandvs
@@ -426,6 +404,7 @@ local function shift_free_items(node)
     return shift_items(shift_snippet(node, 'inline'))
 end
 
+---------------------------------------------------------------------------------------------------
 --- Exported functions
 ---------------------------------------------------------------------------------------------------
 local M = {}
@@ -463,6 +442,12 @@ function M.available()
     return enclosing_node ~= nil or preceding_node ~= nil
 end
 
+-- Add elements of one toable into another table
+local function add_to(to, from)
+    for _,item in ipairs(from) do
+        table.insert(to, item)
+    end
+end
 ---------------------------------------------------------------------------------------------------
 -- Generate from string functions for an enum nodes.
 ---------------------------------------------------------------------------------------------------
@@ -473,31 +458,15 @@ function M.generate()
 
     if ast.is_enum(preceding_node) then
         if ast.is_class(enclosing_node) then
-            for _,item in ipairs(from_string_mnemonic_member_items(preceding_node)) do
-                table.insert(items, item)
-            end
-            for _,item in ipairs(from_string_value_member_items(preceding_node)) do
-                table.insert(items, item)
-            end
-            for _,item in ipairs(to_string_member_items(preceding_node)) do
-                table.insert(items, item)
-            end
-            for _,item in ipairs(shift_member_items(preceding_node)) do
-                table.insert(items, item)
-            end
+            add_to(items, from_string_mnemonic_member_items(preceding_node))
+            add_to(items, from_string_value_member_items(preceding_node))
+            add_to(items, to_string_member_items(preceding_node))
+            add_to(items, shift_member_items(preceding_node))
         else
-            for _,item in ipairs(from_string_mnemonic_free_items(preceding_node)) do
-                table.insert(items, item)
-            end
-            for _,item in ipairs(from_string_value_free_items(preceding_node)) do
-                table.insert(items, item)
-            end
-            for _,item in ipairs(to_string_free_items(preceding_node)) do
-                table.insert(items, item)
-            end
-            for _,item in ipairs(shift_free_items(preceding_node)) do
-                table.insert(items, item)
-            end
+            add_to(items, from_string_mnemonic_free_items(preceding_node))
+            add_to(items, from_string_value_free_items(preceding_node))
+            add_to(items, to_string_free_items(preceding_node))
+            add_to(items, shift_free_items(preceding_node))
         end
     end
 
@@ -518,28 +487,12 @@ function M.status()
 end
 
 ---------------------------------------------------------------------------------------------------
---- Initialization callback
+--- Initialization callback. Capture relevant parts of the configuration.
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
-    if opts then
-        if opts.keepindent ~= nil then
-            G.keepindent = opts.keepindent
-        end
-        if opts.attributes ~= nil then
-            G.attributes = opts.attributes
-        end
-        if opts.enum then
-            if opts.enum.keepindent ~= nil then
-                G.keepindent = opts.enum.keepindent
-            end
-            if opts.enum.attributes ~= nil then
-                G.attributes = opts.enum.attributes
-            end
-            if opts.enum.value then
-                G.enum.value = opts.enum.value
-            end
-        end
-    end
+    G.keepindent = opts.keepindent
+    G.attributes = opts.attributes
+    G.enum       = opts.enum
 end
 
 return M

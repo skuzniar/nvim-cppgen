@@ -1,5 +1,6 @@
 local ast = require('cppgen.ast')
 local log = require('cppgen.log')
+local utl = require('cppgen.gen.util')
 
 local cmp = require('cmp')
 
@@ -8,33 +9,14 @@ local cmp = require('cmp')
 ---------------------------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------------------------
--- Global parameters for code generation.
+-- Global parameters for code generation. Initialized in setup.
 ---------------------------------------------------------------------------------------------------
 local G = {}
 
-G.keepindent = true
-G.attributes = ''
-
 ---------------------------------------------------------------------------------------------------
--- Class specific parameters
+-- Local parameters for code generation.
 ---------------------------------------------------------------------------------------------------
-G.class = {}
-G.class.separator = "' '"
-
--- Create the string that will be printed before class member fields are printed.
-G.class.preamble = function(classname)
-    return '[' .. classname .. ']='
-end
-
--- Create the label string for the member field. By default we use camelized name.
-G.class.label = function(classname, fieldname, camelized)
-    return camelized .. ': '
-end
-
--- Create the value string for the member field. By default we use field reference
-G.class.value = function(fieldref, type)
-    return fieldref
-end
+local P = {}
 
 -- Calculate the longest length of labels and values
 local function max_lengths(records)
@@ -47,18 +29,6 @@ local function max_lengths(records)
     end
     return max_lab_len, max_val_len
 end
-
-local function capitalize(s)
-    return (string.gsub(s, '^%l', string.upper))
-end
-
-local function camelize(s)
-    s = string.gsub(s, '^%a_', '')
-    return (string.gsub(s, '%W*(%w+)', capitalize))
-end
-
--- Local parameters for code generation.
-local P = {}
 
 -- Apply parameters to the format string 
 local function apply(format)
@@ -86,8 +56,8 @@ local function labels_and_values(node, object)
             if n.kind == "Field" then
                 local record = {}
                 record.field = ast.name(n)
-                record.label = G.class.label(ast.name(node), record.field, camelize(record.field))
-                record.value = G.class.value(object .. '.' .. record.field, ast.type(n))
+                record.label = G.class.oshift.label(ast.name(node), record.field, utl.camelize(record.field))
+                record.value = G.class.oshift.value(object .. '.' .. record.field, ast.type(n))
                 table.insert(records, record)
             end
             return true
@@ -103,7 +73,7 @@ local function shift_snippet(node, specifier)
     P.specifier  = specifier
     P.attributes = G.attributes and ' ' .. G.attributes or ''
     P.classname  = ast.name(node)
-    P.separator  = G.class.separator
+    P.separator  = G.class.oshift.separator
     P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
     local records = labels_and_values(node, 'o')
@@ -117,8 +87,8 @@ local function shift_snippet(node, specifier)
         table.insert(lines, apply('<indent>// clang-format off'))
     end
 
-    if G.class.preamble then
-        table.insert(lines, apply('<indent>s << "' .. G.class.preamble(P.classname) .. '";'))
+    if G.class.oshift.preamble then
+        table.insert(lines, apply('<indent>s << "' .. G.class.oshift.preamble(P.classname) .. '";'))
     end
 
     local idx = 1
@@ -257,37 +227,12 @@ function M.status()
 end
 
 ---------------------------------------------------------------------------------------------------
---- Initialization callback
+--- Initialization callback. Capture relevant parts of the configuration.
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
-    if opts then
-        if opts.keepindent ~= nil then
-            G.keepindent = opts.keepindent
-        end
-        if opts.attributes then
-            G.attributes = opts.attributes
-        end
-        if opts.class then
-            if opts.class.keepindent ~= nil then
-                G.keepindent = opts.class.keepindent
-            end
-            if opts.class.attributes then
-                G.attributes = opts.class.attributes
-            end
-            if opts.class.separator then
-                G.class.separator = opts.class.separator
-            end
-            if opts.class.preamble then
-                G.class.preamble = opts.class.preamble
-            end
-            if opts.class.label then
-                G.class.label = opts.class.label
-            end
-            if opts.class.value then
-                G.class.value = opts.class.value
-            end
-        end
-    end
+    G.keepindent = opts.keepindent
+    G.attributes = opts.attributes
+    G.class      = opts.class
 end
 
 return M

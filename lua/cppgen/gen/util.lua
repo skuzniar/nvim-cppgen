@@ -52,4 +52,15 @@ function M.enum_records(node)
     return records
 end
 
+---------------------------------------------------------------------------------------------------
+-- Convert snake_case to CamelCase.
+---------------------------------------------------------------------------------------------------
+function M.camelize(s)
+    local function capitalize(s)
+        return (string.gsub(s, '^%l', string.upper))
+    end
+    s = string.gsub(s, '^%a_', '')
+    return (string.gsub(s, '%W*(%w+)', capitalize))
+end
+
 return M
