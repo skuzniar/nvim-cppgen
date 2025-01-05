@@ -169,16 +169,15 @@ local function shift_items(lines)
     }
 end
 
-
--- Generate output stream friend shift operator completion item for a class type node.
-local function friend_shift_items(node)
-    log.trace("friend_shift_item:", ast.details(node))
+-- Generate output stream shift member operator completion item for a class type node.
+local function shift_member_items(node)
+    log.trace("shift_member_items:", ast.details(node))
     return shift_items(shift_snippet(node, 'friend'))
 end
 
--- Generate output stream inline shift operator completion item for a class type node.
-local function inline_shift_items(node)
-    log.trace("inline_shift_item:", ast.details(node))
+-- Generate output stream shift free operator completion item for a class type node.
+local function shift_free_items(node)
+    log.trace("shift_free_items:", ast.details(node))
     return shift_items(shift_snippet(node, 'inline'))
 end
 
@@ -191,6 +190,7 @@ local preceding_node = nil
 --- Generator will call this method before presenting a set of new candidate nodes.
 ---------------------------------------------------------------------------------------------------
 function M.reset()
+    log.trace("reset:")
     enclosing_node = nil
     preceding_node = nil
 end
@@ -228,17 +228,17 @@ function M.generate()
 
     if ast.is_class(preceding_node) then
         if ast.is_class(enclosing_node) then
-            for _,item in ipairs(friend_shift_items(preceding_node)) do
+            for _,item in ipairs(shift_member_items(preceding_node)) do
                 table.insert(items, item)
             end
         else
-            for _,item in ipairs(inline_shift_items(preceding_node)) do
+            for _,item in ipairs(shift_free_items(preceding_node)) do
                 table.insert(items, item)
             end
         end
     end
     if ast.is_class(enclosing_node) then
-        for _,item in ipairs(friend_shift_items(enclosing_node)) do
+        for _,item in ipairs(shift_member_items(enclosing_node)) do
             table.insert(items, item)
         end
     end
