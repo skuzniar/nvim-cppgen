@@ -92,12 +92,12 @@ M.default = {
         cast = {
             -- From string conversion function. Matches enumerator name. Specializations of: template <typename T, typename F> T enum_cast(F f)
             enum_cast = {
-                -- By default we enable conversion from string
+                -- By default we generate conversion from string
                 enabled = true
             },
             -- From integer conversion function. Matches enumerator value. Specializations of: template <typename T, typename F> T enum_cast(F f)
             value_cast = {
-                -- By default we enable conversion from integers
+                -- By default we generate conversion from integers
                 enabled = true
             },
             name = "enum_cast"

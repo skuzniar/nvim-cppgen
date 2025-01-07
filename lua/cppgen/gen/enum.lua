@@ -248,13 +248,16 @@ local function value_cast_snippet(node, specifier)
     return lines
 end
 
--- Optionally replicate the lines and generate multiple completion items that can be triggered by different labels.
-local function enum_cast_items(...)
+-- Combine multiple completion items.
+local function cast_items(...)
     local lines = ''
     for _,t in ipairs({...}) do
-        lines = lines .. (lines == '' and '' or '\n') .. table.concat(t, '\n')
+        if next(t) ~= nil then
+            lines = lines .. (lines == '' and '' or '\n') .. table.concat(t, '\n')
+        end
     end
-    return
+
+    return lines == '' and {} or
     {
         {
             label            = G.enum.cast.name,
@@ -270,13 +273,17 @@ end
 -- Generate from string enumerator member function snippet item for an enum type node.
 local function cast_member_items(node)
     log.trace("enum_cast_member_items:", ast.details(node))
-    return enum_cast_items(enum_cast_snippet(node, 'template <>'), value_cast_snippet(node, 'template <>'))
+    return cast_items(
+        G.enum.cast.enum_cast.enabled  and enum_cast_snippet  (node, 'template <>') or {},
+        G.enum.cast.value_cast.enabled and value_cast_snippet (node, 'template <>') or {})
 end
 
 -- Generate from string enumerator free function snippet item for an enum type node.
 local function cast_free_items(node)
     log.trace("enum_cast_free_items:", ast.details(node))
-    return enum_cast_items(enum_cast_snippet(node, 'template <> inline'), value_cast_snippet(node, 'template <> inline'))
+    return cast_items(
+        G.enum.cast.enum_cast.enabled  and enum_cast_snippet  (node, 'template <> inline') or {},
+        G.enum.cast.value_cast.enabled and value_cast_snippet (node, 'template <> inline') or {})
 end
 
 ---------------------------------------------------------------------------------------------------
