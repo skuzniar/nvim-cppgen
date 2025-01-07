@@ -8,21 +8,9 @@ local cmp = require('cmp')
 ---------------------------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------------------------
--- Global parameters for code generation.
+-- Global parameters for code generation. Initialized in setup.
 ---------------------------------------------------------------------------------------------------
 local G = {}
-
-G.keepindent = true
-
----------------------------------------------------------------------------------------------------
--- Enum specific parameters
----------------------------------------------------------------------------------------------------
-G.enum = {}
-
--- Create the value string for the enum field.
-G.enum.value = function(classname, fieldname)
-    return '/* ' .. classname .. '::' .. fieldname .. ' */'
-end
 
 ---------------------------------------------------------------------------------------------------
 -- Local parameters for code generation.
@@ -53,7 +41,7 @@ local function enum_labels_and_values(node)
             if n.kind == "EnumConstant" then
                 local record = {}
                 record.label = ast.name(node) .. '::' .. ast.name(n)
-                record.value = G.enum.value(ast.name(node), ast.name(n))
+                record.value = G.switch.enum.placeholder(ast.name(node), ast.name(n))
                 table.insert(records, record)
             end
             return true
@@ -87,27 +75,15 @@ local function case_enum_snippet(node)
 
     local lines = {}
 
-    if G.keepindent then
-        table.insert(lines, apply('// clang-format off'))
-    end
-
     for _,r in ipairs(records) do
         P.label     = r.label
         P.value     = r.value
         P.labelpad  = string.rep(' ', maxllen - string.len(r.label))
         P.valuepad  = string.rep(' ', maxvlen - string.len(r.value))
 
-        if G.keepindent then
-            table.insert(lines, apply('case <label>:<labelpad> <value>;<valuepad> break;'))
-        else
-            table.insert(lines, apply('case <label>:'))
-            table.insert(lines, apply('<indent><value>;'))
-            table.insert(lines, apply('<indent>break;'))
-        end
-    end
-
-    if G.keepindent then
-        table.insert(lines, apply('// clang-format on'))
+        table.insert(lines, apply('case <label>:'))
+        table.insert(lines, apply('<indent><value>;'))
+        table.insert(lines, apply('<indent>break;'))
     end
 
     for _,l in ipairs(lines) do log.debug(l) end
@@ -272,7 +248,7 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.status()
     return {
-        { "case", "Generate case switch statements" }
+        { "case", "Case switch statements" }
     }
 end
 
@@ -280,21 +256,7 @@ end
 --- Initialization callback
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
-    if opts then
-        if opts.keepindent ~= nil then
-            G.keepindent = opts.keepindent
-        end
-        if opts.switch then
-            if opts.switch.keepindent ~= nil then
-                G.keepindent = opts.switch.keepindent
-            end
-            if opts.switch.enum then
-                if opts.switch.enum.value then
-                    G.enum.value = opts.switch.enum.value
-                end
-            end
-        end
-    end
+    G.switch     = opts.switch
 end
 
 return M

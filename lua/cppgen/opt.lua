@@ -126,11 +126,12 @@ M.default = {
 
     -- Switch statement generator
     switch = {
-        keepindent = false,
+        -- Switch on enums
         enum = {
-            value = function(classname, fieldname)
+            -- Part that will go between case and breqk
+            placeholder = function(classname, fieldname)
                 return '// ' .. classname .. '::' .. fieldname
-            end
+            end,
         },
     }
 }
