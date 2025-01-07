@@ -46,8 +46,8 @@ M.default = {
                 return '[' .. classname .. ']='
             end,
             -- Label part of the field
-            label = function(classname, fieldname, camelfield)
-                return camelfield .. ': '
+            label = function(classname, fieldname, camelized)
+                return camelized .. ': '
             end,
             -- Value part of the field
             value = function(fieldref, type)
@@ -88,14 +88,18 @@ M.default = {
             -- In case we want to call it something else, like for instance 'as_string'
             name = "to_string"
         },
-        -- From string conversion function. Matches enumerator name. Specializations of: template <typename T, typename F> T enum_cast(F f)
-        enum_cast = {
-            -- In case we want to call it something else, like for instance 'to'
-            name = "enum_cast"
-        },
-        -- From integer conversion function. Matches enumerator value. Specializations of: template <typename T, typename F> T enum_cast(F f)
-        value_cast = {
-            -- In case we want to call it something else, like for instance 'to'
+        -- Enum cast functions. Conversions from various types into enum
+        cast = {
+            -- From string conversion function. Matches enumerator name. Specializations of: template <typename T, typename F> T enum_cast(F f)
+            enum_cast = {
+                -- By default we enable conversion from string
+                enabled = true
+            },
+            -- From integer conversion function. Matches enumerator value. Specializations of: template <typename T, typename F> T enum_cast(F f)
+            value_cast = {
+                -- By default we enable conversion from integers
+                enabled = true
+            },
             name = "enum_cast"
         },
     },

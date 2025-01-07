@@ -150,7 +150,7 @@ local function enum_cast_snippet(node, specifier)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.enum_cast.name .. '(std::string_view e)'))
+    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(std::string_view e)'))
     table.insert(lines, apply('{'))
 
     if G.keepindent then
@@ -174,40 +174,13 @@ local function enum_cast_snippet(node, specifier)
     table.insert(lines, apply('}'))
 
     -- Add a forwarding function that takes char pointer and forwards it as string view
-    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.enum_cast.name .. '(const char* e)'))
+    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(const char* e)'))
     table.insert(lines, apply('{'))
-    table.insert(lines, apply('<indent>return ' .. G.enum.enum_cast.name .. '<<classname>>(std::string_view(e));'))
+    table.insert(lines, apply('<indent>return ' .. G.enum.cast.name .. '<<classname>>(std::string_view(e));'))
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
     return lines
-end
-
--- Optionally replicate the lines and generate multiple completion items that can be triggered by different labels.
-local function enum_cast_items(lines)
-    return
-    {
-        {
-            label            = G.enum.enum_cast.name,
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = table.concat(lines, '\n'),
-            documentation    = table.concat(lines, '\n')
-        }
-    }
-end
-
--- Generate from string enumerator member function snippet item for an enum type node.
-local function enum_cast_member_items(node)
-    log.trace("enum_cast_member_items:", ast.details(node))
-    return enum_cast_items(enum_cast_snippet(node, 'template <>'))
-end
-
--- Generate from string enumerator free function snippet item for an enum type node.
-local function enum_cast_free_items(node)
-    log.trace("enum_cast_free_items:", ast.details(node))
-    return enum_cast_items(enum_cast_snippet(node, 'template <> inline'))
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -225,7 +198,7 @@ local function value_cast_snippet(node, specifier)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.value_cast.name .. '(int v)'))
+    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(int v)'))
     table.insert(lines, apply('{'))
 
     local cnt = ast.count_children(node,
@@ -266,9 +239,9 @@ local function value_cast_snippet(node, specifier)
     table.insert(lines, apply('}'))
 
     -- Add a forwarding function that takes char and forwards it as integer
-    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.value_cast.name .. '(char v)'))
+    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(char v)'))
     table.insert(lines, apply('{'))
-    table.insert(lines, apply('<indent>return ' .. G.enum.value_cast.name .. '<<classname>>(static_cast<int>(v));'))
+    table.insert(lines, apply('<indent>return ' .. G.enum.cast.name .. '<<classname>>(static_cast<int>(v));'))
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
@@ -276,30 +249,34 @@ local function value_cast_snippet(node, specifier)
 end
 
 -- Optionally replicate the lines and generate multiple completion items that can be triggered by different labels.
-local function value_cast_items(lines)
+local function enum_cast_items(...)
+    local lines = ''
+    for _,t in ipairs({...}) do
+        lines = lines .. (lines == '' and '' or '\n') .. table.concat(t, '\n')
+    end
     return
     {
         {
-            label            = G.enum.value_cast.name,
+            label            = G.enum.cast.name,
             kind             = cmp.lsp.CompletionItemKind.Snippet,
             insertTextMode   = 2,
             insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = table.concat(lines, '\n'),
-            documentation    = table.concat(lines, '\n')
-        },
+            insertText       = lines,
+            documentation    = lines,
+        }
     }
 end
 
--- Generate from string member function snippet item for an enum type node.
-local function value_cast_member_items(node)
-    log.trace("value_cast_member_items:", ast.details(node))
-    return value_cast_items(value_cast_snippet(node, 'template <>'))
+-- Generate from string enumerator member function snippet item for an enum type node.
+local function cast_member_items(node)
+    log.trace("enum_cast_member_items:", ast.details(node))
+    return enum_cast_items(enum_cast_snippet(node, 'template <>'), value_cast_snippet(node, 'template <>'))
 end
 
--- Generate from string free function snippet item for an enum type node.
-local function value_cast_free_items(node)
-    log.trace("value_cast_free_items:", ast.details(node))
-    return value_cast_items(value_cast_snippet(node, 'template <> inline'))
+-- Generate from string enumerator free function snippet item for an enum type node.
+local function cast_free_items(node)
+    log.trace("enum_cast_free_items:", ast.details(node))
+    return enum_cast_items(enum_cast_snippet(node, 'template <> inline'), value_cast_snippet(node, 'template <> inline'))
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -436,13 +413,11 @@ function M.generate()
     if ast.is_enum(preceding_node) then
         if ast.is_class(enclosing_node) then
             add_to(items, to_string_member_items(preceding_node))
-            add_to(items, enum_cast_member_items(preceding_node))
-            add_to(items, value_cast_member_items(preceding_node))
+            add_to(items, cast_member_items(preceding_node))
             add_to(items, shift_member_items(preceding_node))
         else
             add_to(items, to_string_free_items(preceding_node))
-            add_to(items, enum_cast_free_items(preceding_node))
-            add_to(items, value_cast_free_items(preceding_node))
+            add_to(items, cast_free_items(preceding_node))
             add_to(items, shift_free_items(preceding_node))
         end
     end
@@ -455,10 +430,9 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.status()
     return {
-        { G.enum.to_string.name,  "Enum to string converter"   },
-        { G.enum.enum_cast.name,  "Enum from string converter" },
-        { G.enum.value_cast.name, "Enum from integer converter" },
-        { G.enum.shift.trigger,   "Enum output stream shift operator" }
+        { G.enum.to_string.name, "Enum to string converter"   },
+        { G.enum.cast.name,      "Enum from string converter" },
+        { G.enum.shift.trigger,  "Enum output stream shift operator" }
     }
 end
 
