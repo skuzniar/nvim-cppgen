@@ -30,15 +30,17 @@ M.default = {
         use_console = false
     },
 
-    -- General options
+    -- Disclaimer and attributes. Set to empty string to disable
     disclaimer = '// Auto-generated using cppgen',
     attributes = '[[cppgen::auto]]',
+
+    -- Add clang-format on/off guards around parts of generated code
     keepindent = true,
 
     -- Class type snippet generator
     class = {
         -- Output stream shift operator
-        oshift = {
+        shift = {
             -- String printed before any fields are printed
             preamble  = function(classname)
                 return '[' .. classname .. ']='
@@ -51,63 +53,74 @@ M.default = {
             value = function(fieldref, type)
                 return fieldref
             end,
-            separator = "' '"
+            -- Separator between fields
+            separator = "' '",
+            -- Will be triggered by the first word of the function, but also by this
+            trigger = "shift"
         }
     },
 
     -- Enum type snippet generator
     enum = {
         -- Output stream shift operator
-        oshift = {
-            -- Given an enum mnemonic and optional value, return the corresponding string
-            value = function(mnemonic, value)
+        shift = {
+            -- Given an enumerator and optional value, return the corresponding string
+            value = function(enumerator, value)
                 if (value) then
-                    return '"' .. value .. '(' .. mnemonic .. ')' .. '"'
+                    return '"' .. value .. '(' .. enumerator .. ')' .. '"'
                 else
-                    return '"' .. mnemonic .. '"'
+                    return '"' .. enumerator .. '"'
                 end
-            end
+            end,
+            -- Will be triggered by the first word of the function, but also by this
+            trigger = "shift"
         },
-        -- Conversion functions
-        convert = {
-            -- To string conversion function: std::string to_string(enum e)
-            to_string = {
-                -- Given an enum mnemonic and optional value, return the corresponding string
-                value = function(mnemonic, value)
-                    if (value) then
-                        return '"' .. value .. '(' .. mnemonic .. ')' .. '"'
-                    else
-                        return '"' .. mnemonic .. '"'
-                    end
-                end,
-                -- We may choose not to generate the function
-                enabled = true
-            },
+        -- To string conversion function: std::string to_string(enum e)
+        to_string = {
+            -- Given an enumerator and optional value, return the corresponding string
+            value = function(enumerator, value)
+                if (value) then
+                    return '"' .. value .. '(' .. enumerator .. ')' .. '"'
+                else
+                    return '"' .. enumerator .. '"'
+                end
+            end,
+            -- In case we want to call it something else, like for instance 'as_string'
+            name = "to_string"
+        },
+        -- From string conversion function. Matches enumerator name. Specializations of: template <typename T, typename F> T enum_cast(F f)
+        enum_cast = {
+            -- In case we want to call it something else, like for instance 'to'
+            name = "enum_cast"
+        },
+        -- From integer conversion function. Matches enumerator value. Specializations of: template <typename T, typename F> T enum_cast(F f)
+        value_cast = {
+            -- In case we want to call it something else, like for instance 'to'
+            name = "enum_cast"
         },
     },
 
     -- JSON serialization using cereal library
     cereal = {
+        -- Class serialization options
         class = {
+            -- Field will be skipped if this function returns nil
             label = function(classname, fieldname, camelized)
-                -- demonstrate field skipping
-                if camelized == 'SkipMe' then
-                    return nil
-                end
                 return camelized
             end,
             value = function(fieldref, type)
-                if type and type == "char" then
-                    return 'tv(' .. fieldref .. ')'
-                end
                 return fieldref
             end,
-            xnullcheck = function(fieldref, type)
-                return 'isnull(' .. fieldref .. ')'
+            -- To disable null check, this function should return nil
+            nullcheck = function(fieldref, type)
+                return nil
             end,
-            xnullvalue = function(fieldref, type)
+            -- If the null check succedes, this is the value that will be serialized. Return nil to skip the serialization
+            nullvalue = function(fieldref, type)
                 return 'nullptr'
-            end
+            end,
+            -- In case we want to call the serialization function differently. This is also a trigger.
+            name = "save"
         },
     },
 

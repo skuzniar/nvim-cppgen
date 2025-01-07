@@ -36,15 +36,15 @@ local function apply(format)
     return result;
 end
 
--- Collect names and values for an enum type node.
-local function labels_and_values(node)
+-- Collect names and values for an enum type node. Labels are fixed, values are calculated.
+local function labels_and_values(node, vf)
     log.trace("labels_and_values:", ast.details(node))
 
     local lsandvs = {}
     for _,r in ipairs(utl.enum_records(node)) do
         local record = {}
         record.label = ast.name(node) .. '::' .. r.label
-        record.value = G.enum.oshift.value(r.label, r.value)
+        record.value = vf(r.label, r.value)
         table.insert(lsandvs, record)
     end
     return lsandvs
@@ -77,14 +77,13 @@ local function to_string_snippet(node, specifier)
     P.classname  = ast.name(node)
     P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
-    local records = labels_and_values(node)
+    local records = labels_and_values(node, G.enum.to_string.value)
     local maxllen, maxvlen = max_lengths(records)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier><attributes> std::string to_string(<classname> o)'))
+    table.insert(lines, apply('<specifier><attributes> std::string ' .. G.enum.to_string.name .. '(<classname> o)'))
     table.insert(lines, apply('{'))
-    table.insert(lines, apply('<indent>std::string r;'))
     table.insert(lines, apply('<indent>switch(o)'))
     table.insert(lines, apply('<indent>{'))
     if G.keepindent then
@@ -96,34 +95,25 @@ local function to_string_snippet(node, specifier)
         P.value     = r.value
         P.labelpad  = string.rep(' ', maxllen - string.len(r.label))
         P.valuepad  = string.rep(' ', maxvlen - string.len(r.value))
-        table.insert(lines, apply('<indent><indent>case <label>:<labelpad> r = <value>;<valuepad> break;'))
+        table.insert(lines, apply('<indent><indent>case <label>:<labelpad> return <value>;<valuepad> break;'))
     end
 
     if G.keepindent then
         table.insert(lines, apply('<indent><indent>// clang-format on'))
     end
     table.insert(lines, apply('<indent>};'))
-    table.insert(lines, apply('<indent>return r;'))
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
     return lines
 end
 
--- Duplicate the lines and generate two completion items that can be triggered by different labels.
+-- Optionally replicate the lines and generate multiple completion items that can be triggered by different labels.
 local function to_string_items(lines)
     return
     {
         {
-            label            = "convert",
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = table.concat(lines, '\n'),
-            documentation    = table.concat(lines, '\n')
-        },
-        {
-            label            = "to_string",
+            label            = G.enum.to_string.name,
             kind             = cmp.lsp.CompletionItemKind.Snippet,
             insertTextMode   = 2,
             insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
@@ -146,10 +136,10 @@ local function to_string_free_items(node)
 end
 
 ---------------------------------------------------------------------------------------------------
--- Generate from string converter
+-- Generate enumerator cast. Converts from string matching on enumerator name.
 ---------------------------------------------------------------------------------------------------
-local function from_string_mnemonic_snippet(node, specifier)
-    log.trace("from_string_mnemonic_snippet:", ast.details(node))
+local function enum_cast_snippet(node, specifier)
+    log.trace("enum_cast_snippet:", ast.details(node))
 
     P.specifier  = specifier
     P.attributes = G.attributes and ' ' .. G.attributes or ''
@@ -160,7 +150,7 @@ local function from_string_mnemonic_snippet(node, specifier)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier><attributes> <classname> from_string(std::string_view v)'))
+    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.enum_cast.name .. '(std::string_view e)'))
     table.insert(lines, apply('{'))
 
     if G.keepindent then
@@ -171,7 +161,7 @@ local function from_string_mnemonic_snippet(node, specifier)
             if n.kind == "EnumConstant" then
                 P.fieldname = ast.name(n)
                 P.valuepad  = string.rep(' ', maxllen - string.len(P.fieldname))
-                table.insert(lines, apply('<indent>if (v == "<fieldname>")<valuepad> return <classname>::<fieldname>;'))
+                table.insert(lines, apply('<indent>if (e == "<fieldname>")<valuepad> return <classname>::<fieldname>;'))
             end
             return true
         end
@@ -180,28 +170,25 @@ local function from_string_mnemonic_snippet(node, specifier)
         table.insert(lines, apply('<indent>// clang-format on'))
     end
 
-    table.insert(lines, apply('<indent>throw std::runtime_error("Value " + std::string(v) + " is outside of <classname> enumeration range.");'))
+    table.insert(lines, apply('<indent>throw std::runtime_error("Value " + std::string(e) + " is outside of <classname> enumeration range.");'))
+    table.insert(lines, apply('}'))
 
+    -- Add a forwarding function that takes char pointer and forwards it as string view
+    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.enum_cast.name .. '(const char* e)'))
+    table.insert(lines, apply('{'))
+    table.insert(lines, apply('<indent>return ' .. G.enum.enum_cast.name .. '<<classname>>(std::string_view(e));'))
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
     return lines
 end
 
--- Duplicate the lines and generate two completion items that can be triggered by different labels.
-local function from_string_mnemonic_items(lines)
+-- Optionally replicate the lines and generate multiple completion items that can be triggered by different labels.
+local function enum_cast_items(lines)
     return
     {
         {
-            label            = "convert",
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = table.concat(lines, '\n'),
-            documentation    = table.concat(lines, '\n')
-        },
-        {
-            label            = "from_string",
+            label            = G.enum.enum_cast.name,
             kind             = cmp.lsp.CompletionItemKind.Snippet,
             insertTextMode   = 2,
             insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
@@ -211,23 +198,23 @@ local function from_string_mnemonic_items(lines)
     }
 end
 
--- Generate from string mnemonic member function snippet item for an enum type node.
-local function from_string_mnemonic_member_items(node)
-    log.trace("from_string_mnemonic_member_items:", ast.details(node))
-    return from_string_mnemonic_items(from_string_mnemonic_snippet(node, 'template <>'))
+-- Generate from string enumerator member function snippet item for an enum type node.
+local function enum_cast_member_items(node)
+    log.trace("enum_cast_member_items:", ast.details(node))
+    return enum_cast_items(enum_cast_snippet(node, 'template <>'))
 end
 
--- Generate from string mnemonic free function snippet item for an enum type node.
-local function from_string_mnemonic_free_items(node)
-    log.trace("from_string_mnemonic_free_items:", ast.details(node))
-    return from_string_mnemonic_items(from_string_mnemonic_snippet(node, 'template <> inline'))
+-- Generate from string enumerator free function snippet item for an enum type node.
+local function enum_cast_free_items(node)
+    log.trace("enum_cast_free_items:", ast.details(node))
+    return enum_cast_items(enum_cast_snippet(node, 'template <> inline'))
 end
 
 ---------------------------------------------------------------------------------------------------
--- Generate from string converter
+-- Generate enumerator cast. Converts from integer matching on enumerator value.
 ---------------------------------------------------------------------------------------------------
-local function from_string_value_snippet(node, specifier)
-    log.trace("from_string_value_snippet:", ast.details(node))
+local function value_cast_snippet(node, specifier)
+    log.trace("value_cast_snippet:", ast.details(node))
 
     P.specifier  = specifier
     P.attributes = G.attributes and ' ' .. G.attributes or ''
@@ -238,14 +225,8 @@ local function from_string_value_snippet(node, specifier)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier><attributes> <classname> from_string(std::string_view v)'))
+    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.value_cast.name .. '(int v)'))
     table.insert(lines, apply('{'))
-
-    table.insert(lines, apply('<indent>std::underlying_type_t<<classname>> i = 0;'))
-    table.insert(lines, apply('<indent>auto r = std::from_chars(v.begin(), v.end(), i);'))
-    table.insert(lines, apply('<indent>if (r.ec != std::errc()) {'))
-    table.insert(lines, apply('<indent><indent>throw std::runtime_error("Unable to convert " + std::string(v) + " into an underlying type.");'))
-    table.insert(lines, apply('<indent>}'))
 
     local cnt = ast.count_children(node,
         function(n)
@@ -265,9 +246,9 @@ local function from_string_value_snippet(node, specifier)
                 P.fieldname = ast.name(n)
                 P.valuepad  = string.rep(' ', maxllen - string.len(P.fieldname))
                 if idx == cnt then
-                    table.insert(lines, apply('<indent><indent>i == static_cast<std::underlying_type_t<<classname>>>(<classname>::<fieldname>)<valuepad>)'))
+                    table.insert(lines, apply('<indent><indent>v == static_cast<std::underlying_type_t<<classname>>>(<classname>::<fieldname>)<valuepad>)'))
                 else
-                    table.insert(lines, apply('<indent><indent>i == static_cast<std::underlying_type_t<<classname>>>(<classname>::<fieldname>)<valuepad> ||'))
+                    table.insert(lines, apply('<indent><indent>v == static_cast<std::underlying_type_t<<classname>>>(<classname>::<fieldname>)<valuepad> ||'))
                 end
                 idx = idx + 1
             end
@@ -279,50 +260,46 @@ local function from_string_value_snippet(node, specifier)
     end
 
     table.insert(lines, apply('<indent>{'))
-    table.insert(lines, apply('<indent><indent>return static_cast<<classname>>(i);'))
+    table.insert(lines, apply('<indent><indent>return static_cast<<classname>>(v);'))
     table.insert(lines, apply('<indent>}'))
+    table.insert(lines, apply('<indent>throw std::runtime_error("Value " + std::to_string(v) + " is outside of <classname> enumeration range.");'))
+    table.insert(lines, apply('}'))
 
-    table.insert(lines, apply('<indent>throw std::runtime_error("Value " + std::to_string(i) + " is outside of <classname> enumeration range.");'))
-
+    -- Add a forwarding function that takes char and forwards it as integer
+    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.value_cast.name .. '(char v)'))
+    table.insert(lines, apply('{'))
+    table.insert(lines, apply('<indent>return ' .. G.enum.value_cast.name .. '<<classname>>(static_cast<int>(v));'))
     table.insert(lines, apply('}'))
 
     for _,l in ipairs(lines) do log.debug(l) end
     return lines
 end
 
--- Duplicate the lines and generate two completion items that can be triggered by different labels.
-local function from_string_value_items(lines)
+-- Optionally replicate the lines and generate multiple completion items that can be triggered by different labels.
+local function value_cast_items(lines)
     return
     {
         {
-            label            = "convert",
+            label            = G.enum.value_cast.name,
             kind             = cmp.lsp.CompletionItemKind.Snippet,
             insertTextMode   = 2,
             insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
             insertText       = table.concat(lines, '\n'),
             documentation    = table.concat(lines, '\n')
         },
-        {
-            label            = "from_string",
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = table.concat(lines, '\n'),
-            documentation    = table.concat(lines, '\n')
-        }
     }
 end
 
 -- Generate from string member function snippet item for an enum type node.
-local function from_string_value_member_items(node)
-    log.trace("from_string_value_member_items:", ast.details(node))
-    return from_string_value_items(from_string_value_snippet(node, 'template <>'))
+local function value_cast_member_items(node)
+    log.trace("value_cast_member_items:", ast.details(node))
+    return value_cast_items(value_cast_snippet(node, 'template <>'))
 end
 
 -- Generate from string free function snippet item for an enum type node.
-local function from_string_value_free_items(node)
-    log.trace("from_string_value_free_items:", ast.details(node))
-    return from_string_value_items(from_string_value_snippet(node, 'template <> inline'))
+local function value_cast_free_items(node)
+    log.trace("value_cast_free_items:", ast.details(node))
+    return value_cast_items(value_cast_snippet(node, 'template <> inline'))
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -336,7 +313,7 @@ local function shift_snippet(node, specifier)
     P.classname  = ast.name(node)
     P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
-    local records = labels_and_values(node)
+    local records = labels_and_values(node, G.enum.shift.value)
     local maxllen, maxvlen = max_lengths(records)
 
     local lines = {}
@@ -369,12 +346,12 @@ local function shift_snippet(node, specifier)
     return lines
 end
 
--- Duplicate the lines and generate two completion items that can be triggered by different labels.
+-- Optionally replicate the lines and generate multiple completion items that can be triggered by different labels.
 local function shift_items(lines)
     return
     {
         {
-            label            = "shift",
+            label            = G.enum.shift.trigger,
             kind             = cmp.lsp.CompletionItemKind.Snippet,
             insertTextMode   = 2,
             insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
@@ -458,14 +435,14 @@ function M.generate()
 
     if ast.is_enum(preceding_node) then
         if ast.is_class(enclosing_node) then
-            add_to(items, from_string_mnemonic_member_items(preceding_node))
-            add_to(items, from_string_value_member_items(preceding_node))
             add_to(items, to_string_member_items(preceding_node))
+            add_to(items, enum_cast_member_items(preceding_node))
+            add_to(items, value_cast_member_items(preceding_node))
             add_to(items, shift_member_items(preceding_node))
         else
-            add_to(items, from_string_mnemonic_free_items(preceding_node))
-            add_to(items, from_string_value_free_items(preceding_node))
             add_to(items, to_string_free_items(preceding_node))
+            add_to(items, enum_cast_free_items(preceding_node))
+            add_to(items, value_cast_free_items(preceding_node))
             add_to(items, shift_free_items(preceding_node))
         end
     end
@@ -478,11 +455,10 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.status()
     return {
-        { "to_string",    "Generate to string enum converter"   },
-        { "convert",      "Generate to string enum converter"   },
-        { "from_string",  "Generate from string enum converter" },
-        { "convert",      "Generate from string enum converter" },
-        { "shift",        "Generate enum output stream shift operator" }
+        { G.enum.to_string.name,  "Enum to string converter"   },
+        { G.enum.enum_cast.name,  "Enum from string converter" },
+        { G.enum.value_cast.name, "Enum from integer converter" },
+        { G.enum.shift.trigger,   "Enum output stream shift operator" }
     }
 end
 

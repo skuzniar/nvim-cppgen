@@ -56,8 +56,8 @@ local function labels_and_values(node, object)
             if n.kind == "Field" then
                 local record = {}
                 record.field = ast.name(n)
-                record.label = G.class.oshift.label(ast.name(node), record.field, utl.camelize(record.field))
-                record.value = G.class.oshift.value(object .. '.' .. record.field, ast.type(n))
+                record.label = G.class.shift.label(ast.name(node), record.field, utl.camelize(record.field))
+                record.value = G.class.shift.value(object .. '.' .. record.field, ast.type(n))
                 table.insert(records, record)
             end
             return true
@@ -73,7 +73,7 @@ local function shift_snippet(node, specifier)
     P.specifier  = specifier
     P.attributes = G.attributes and ' ' .. G.attributes or ''
     P.classname  = ast.name(node)
-    P.separator  = G.class.oshift.separator
+    P.separator  = G.class.shift.separator
     P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
     local records = labels_and_values(node, 'o')
@@ -87,8 +87,8 @@ local function shift_snippet(node, specifier)
         table.insert(lines, apply('<indent>// clang-format off'))
     end
 
-    if G.class.oshift.preamble then
-        table.insert(lines, apply('<indent>s << "' .. G.class.oshift.preamble(P.classname) .. '";'))
+    if G.class.shift.preamble then
+        table.insert(lines, apply('<indent>s << "' .. G.class.shift.preamble(P.classname) .. '";'))
     end
 
     local idx = 1
@@ -121,7 +121,7 @@ local function shift_items(lines)
     return
     {
         {
-            label            = "shift",
+            label            = G.class.shift.trigger,
             kind             = cmp.lsp.CompletionItemKind.Snippet,
             insertTextMode   = 2,
             insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
@@ -213,7 +213,6 @@ function M.generate()
         end
     end
 
-    log.info("generate:", items)
     return items
 end
 
@@ -222,7 +221,7 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.status()
     return {
-        { "shift",  "Generate class output stream shift operator" }
+        { G.class.shift.trigger,  "Class output stream shift operator" }
     }
 end
 

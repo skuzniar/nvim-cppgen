@@ -1,5 +1,6 @@
 local ast = require('cppgen.ast')
 local log = require('cppgen.log')
+local utl = require('cppgen.gen.util')
 
 local cmp = require('cmp')
 
@@ -8,37 +9,14 @@ local cmp = require('cmp')
 ---------------------------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------------------------
--- Global parameters for code generation.
+-- Global parameters for code generation. Initialized in setup.
 ---------------------------------------------------------------------------------------------------
 local G = {}
 
-G.keepindent = true
-G.attributes = ''
-
 ---------------------------------------------------------------------------------------------------
--- Class specific parameters
+-- Local parameters for code generation.
 ---------------------------------------------------------------------------------------------------
-G.class = {}
-
--- Create the label string for the member field. By default we use camelized name.
-G.class.label = function(classname, fieldname, camelized)
-    return camelized
-end
-
--- Create the value string for the member field. By default we use field reference
-G.class.value = function(fieldref, type)
-    return fieldref
-end
-
--- Check if field is null and handle it accordingly. By default we do not check.
-G.class.nullcheck = function(fieldref, type)
-    return nil
-end
-
--- If checking for null field, may want to skip it or show special value. By default we skip
-G.class.nullvalue = function(fieldref, type)
-    return nil
-end
+local P = {}
 
 -- Calculate the longest length of labels and values
 local function max_lengths(records)
@@ -51,20 +29,6 @@ local function max_lengths(records)
     end
     return max_lab_len, max_val_len
 end
-
-local function capitalize(s)
-    return (string.gsub(s, '^%l', string.upper))
-end
-
-local function camelize(s)
-    s = string.gsub(s, '^%a_', '')
-    return (string.gsub(s, '%W*(%w+)', capitalize))
-end
-
----------------------------------------------------------------------------------------------------
--- Local parameters for code generation.
----------------------------------------------------------------------------------------------------
-local P = {}
 
 -- Apply parameters to the format string 
 local function apply(format)
@@ -94,29 +58,29 @@ local function class_labels_and_values(node, object)
             if n.kind == "Field" then
                 local record = {}
                 record.field = ast.name(n)
-                record.label = G.class.label(ast.name(node), record.field, camelize(record.field))
+                record.label = G.cereal.class.label(ast.name(node), record.field, utl.camelize(record.field))
 
                 -- Null handling checks
-                if G.class.nullcheck then
+                if G.cereal.class.nullcheck then
                     if (object) then
-                        record.nullcheck = G.class.nullcheck(object .. '.' .. record.field, ast.type(n))
+                        record.nullcheck = G.cereal.class.nullcheck(object .. '.' .. record.field, ast.type(n))
                     else
-                        record.nullcheck = G.class.nullcheck(record.field, ast.type(n))
+                        record.nullcheck = G.cereal.class.nullcheck(record.field, ast.type(n))
                     end
                 end
-                if G.class.nullvalue then
+                if G.cereal.class.nullvalue then
                     if (object) then
-                        record.nullvalue = G.class.nullvalue(object .. '.' .. record.field, ast.type(n))
+                        record.nullvalue = G.cereal.class.nullvalue(object .. '.' .. record.field, ast.type(n))
                     else
-                        record.nullvalue = G.class.nullvalue(record.field, ast.type(n))
+                        record.nullvalue = G.cereal.class.nullvalue(record.field, ast.type(n))
                     end
                 end
                 -- Custom code will trigger field skipping when it sets either label or value to nil
                 if record.label ~= nil then
                     if (object) then
-                        record.value = G.class.value(object .. '.' .. record.field, ast.type(n))
+                        record.value = G.cereal.class.value(object .. '.' .. record.field, ast.type(n))
                     else
-                        record.value = G.class.value(record.field, ast.type(n))
+                        record.value = G.cereal.class.value(record.field, ast.type(n))
                     end
                     if record.value ~= nil then
                         table.insert(records, record)
@@ -146,9 +110,9 @@ local function save_class_snippet(node, specifier, member)
     local lines = {}
 
     if member then
-        table.insert(lines, apply('<specifier><attributes> void save(Archive& archive) const'))
+        table.insert(lines, apply('<specifier><attributes> void ' .. G.cereal.class.name .. '(Archive& archive) const'))
     else
-        table.insert(lines, apply('<specifier><attributes> void save(Archive& archive, const <classname>& o)'))
+        table.insert(lines, apply('<specifier><attributes> void ' .. G.cereal.class.name .. '(Archive& archive, const <classname>& o)'))
     end
     table.insert(lines, apply('{'))
     if G.keepindent then
@@ -207,13 +171,11 @@ local function save_class_snippet(node, specifier, member)
     return lines
 end
 
--- Generate serialization function snippet item for a class type node.
-local function save_class_member_item(node)
-    log.trace("save_class_member_item:", ast.details(node))
-    local lines = save_class_snippet(node, 'template <typename Archive>', true)
+-- Generate completion item
+local function save_class_item(lines)
     return
     {
-        label            = 'save',
+        label            = G.cereal.class.name,
         kind             = cmp.lsp.CompletionItemKind.Snippet,
         insertTextMode   = 2,
         insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
@@ -222,18 +184,15 @@ local function save_class_member_item(node)
     }
 end
 
+-- Generate serialization function snippet items for a class type node.
+local function save_class_member_item(node)
+    log.trace("save_class_member_item:", ast.details(node))
+    return save_class_item(save_class_snippet(node, 'template <typename Archive>', true))
+end
+
 local function save_class_free_item(node)
     log.trace("save_class_free_item:", ast.details(node))
-    local lines = save_class_snippet(node, 'template <typename Archive>', false)
-    return
-    {
-        label            = 'save',
-        kind             = cmp.lsp.CompletionItemKind.Snippet,
-        insertTextMode   = 2,
-        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = table.concat(lines, '\n'),
-        documentation    = table.concat(lines, '\n')
-    }
+    return save_class_item(save_class_snippet(node, 'template <typename Archive>', false))
 end
 
 local enclosing_node = nil
@@ -293,44 +252,17 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.status()
     return {
-        { "save", "Generate class serialization function" }
+        { G.cereal.class.name, "Generate class serialization function" }
     }
 end
 
 ---------------------------------------------------------------------------------------------------
---- Initialization callback
+--- Initialization callback. Capture relevant parts of the configuration.
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
-    if opts then
-        if opts.keepindent ~= nil then
-            G.keepindent = opts.keepindent
-        end
-        if opts.attributes ~= nil then
-            G.attributes = opts.attributes
-        end
-        if opts.cereal then
-            if opts.cereal.keepindent ~= nil then
-                G.keepindent = opts.cereal.keepindent
-            end
-            if opts.cereal.attributes ~= nil then
-                G.attributes = opts.cereal.attributes
-            end
-            if opts.cereal.class then
-                if opts.cereal.class.label then
-                    G.class.label = opts.cereal.class.label
-                end
-                if opts.cereal.class.value then
-                    G.class.value = opts.cereal.class.value
-                end
-                if opts.cereal.class.nullcheck then
-                    G.class.nullcheck = opts.cereal.class.nullcheck
-                end
-                if opts.cereal.class.nullvalue then
-                    G.class.nullvalue = opts.cereal.class.nullvalue
-                end
-            end
-        end
-    end
+    G.keepindent = opts.keepindent
+    G.attributes = opts.attributes
+    G.cereal     = opts.cereal
 end
 
 return M
