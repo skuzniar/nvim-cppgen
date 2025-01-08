@@ -119,7 +119,16 @@ local function to_string_items(lines)
             insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
             insertText       = table.concat(lines, '\n'),
             documentation    = table.concat(lines, '\n')
-        }
+        },
+        G.enum.to_string.trigger ~= G.enum.to_string.name and
+        {
+            label            = G.enum.to_string.trigger,
+            kind             = cmp.lsp.CompletionItemKind.Snippet,
+            insertTextMode   = 2,
+            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+            insertText       = table.concat(lines, '\n'),
+            documentation    = table.concat(lines, '\n')
+        } or nil
     }
 end
 
@@ -266,7 +275,16 @@ local function cast_items(...)
             insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
             insertText       = lines,
             documentation    = lines,
-        }
+        },
+        G.enum.cast.trigger ~= G.enum.cast.name and
+        {
+            label            = G.enum.cast.trigger,
+            kind             = cmp.lsp.CompletionItemKind.Snippet,
+            insertTextMode   = 2,
+            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+            insertText       = lines,
+            documentation    = lines,
+        } or nil
     }
 end
 
@@ -403,7 +421,7 @@ function M.available()
     return enclosing_node ~= nil or preceding_node ~= nil
 end
 
--- Add elements of one toable into another table
+-- Add elements of one table into another table
 local function add_to(to, from)
     for _,item in ipairs(from) do
         table.insert(to, item)
@@ -435,11 +453,15 @@ end
 ---------------------------------------------------------------------------------------------------
 --- Status callback
 ---------------------------------------------------------------------------------------------------
+local function combine(name, trigger)
+    return name == trigger and name or name .. ' or ' .. trigger
+end
+
 function M.status()
     return {
-        { G.enum.to_string.name, "Enum to string converter"   },
-        { G.enum.cast.name,      "Enum from string converter" },
-        { G.enum.shift.trigger,  "Enum output stream shift operator" }
+        { combine(G.enum.to_string.name, G.enum.to_string.trigger), "Enum to string converter"   },
+        { combine(G.enum.cast.name, G.enum.cast.trigger),           "Enum from string and enum from underlying type converter" },
+        { G.enum.shift.trigger,                                     "Enum output stream shift operator" }
     }
 end
 

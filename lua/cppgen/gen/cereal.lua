@@ -171,28 +171,39 @@ local function save_class_snippet(node, specifier, member)
     return lines
 end
 
--- Generate completion item
-local function save_class_item(lines)
+-- Generate completion items
+local function save_class_items(lines)
     return
     {
-        label            = G.cereal.class.name,
-        kind             = cmp.lsp.CompletionItemKind.Snippet,
-        insertTextMode   = 2,
-        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = table.concat(lines, '\n'),
-        documentation    = table.concat(lines, '\n')
+        {
+            label            = G.cereal.class.name,
+            kind             = cmp.lsp.CompletionItemKind.Snippet,
+            insertTextMode   = 2,
+            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+            insertText       = table.concat(lines, '\n'),
+            documentation    = table.concat(lines, '\n')
+        },
+        G.cereal.class.trigger ~= G.cereal.class.name and
+        {
+            label            = G.cereal.class.trigger,
+            kind             = cmp.lsp.CompletionItemKind.Snippet,
+            insertTextMode   = 2,
+            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+            insertText       = table.concat(lines, '\n'),
+            documentation    = table.concat(lines, '\n')
+        } or nil
     }
 end
 
 -- Generate serialization function snippet items for a class type node.
-local function save_class_member_item(node)
-    log.trace("save_class_member_item:", ast.details(node))
-    return save_class_item(save_class_snippet(node, 'template <typename Archive>', true))
+local function save_class_member_items(node)
+    log.trace("save_class_member_items:", ast.details(node))
+    return save_class_items(save_class_snippet(node, 'template <typename Archive>', true))
 end
 
-local function save_class_free_item(node)
-    log.trace("save_class_free_item:", ast.details(node))
-    return save_class_item(save_class_snippet(node, 'template <typename Archive>', false))
+local function save_class_free_items(node)
+    log.trace("save_class_free_items:", ast.details(node))
+    return save_class_items(save_class_snippet(node, 'template <typename Archive>', false))
 end
 
 local enclosing_node = nil
@@ -229,6 +240,12 @@ function M.available()
     return enclosing_node ~= nil or preceding_node ~= nil
 end
 
+-- Add elements of one table into another table
+local function add_to(to, from)
+    for _,item in ipairs(from) do
+        table.insert(to, item)
+    end
+end
 ---------------------------------------------------------------------------------------------------
 -- Generate completion items
 ---------------------------------------------------------------------------------------------------
@@ -236,23 +253,25 @@ function M.generate()
     log.trace("generate:", ast.details(preceding_node), ast.details(enclosing_node))
 
     local items = {}
-
     if ast.is_class(enclosing_node) then
-        table.insert(items, save_class_member_item(enclosing_node))
+        add_to(items, save_class_member_items(enclosing_node))
     end
     if ast.is_class(preceding_node) then
-        table.insert(items, save_class_free_item(preceding_node))
+        add_to(items, save_class_free_items(preceding_node))
     end
-
     return items
 end
 
 ---------------------------------------------------------------------------------------------------
 --- Status callback
 ---------------------------------------------------------------------------------------------------
+local function combine(name, trigger)
+    return name == trigger and name or name .. ' or ' .. trigger
+end
+
 function M.status()
     return {
-        { G.cereal.class.name, "Generate class serialization function" }
+        { combine(G.cereal.class.name, G.cereal.class.trigger), "Generate class serialization function" }
     }
 end
 

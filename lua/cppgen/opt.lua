@@ -72,7 +72,7 @@ M.default = {
                     return '"' .. enumerator .. '"'
                 end
             end,
-            -- Will be triggered by the first word of the function, but also by this
+            -- Completion trigger. Will also use the first word of the function definition line
             trigger = "shift"
         },
         -- To string conversion function: std::string to_string(enum e)
@@ -85,8 +85,10 @@ M.default = {
                     return '"' .. enumerator .. '"'
                 end
             end,
-            -- In case we want to call it something else, like for instance 'as_string'
-            name = "to_string"
+            -- Name of the conversion function. Also used as a completion trigger
+            name = "to_string",
+            -- Additional completion trigger if present
+            trigger = "to_string"
         },
         -- Enum cast functions. Conversions from various types into enum
         cast = {
@@ -100,7 +102,10 @@ M.default = {
                 -- By default we generate conversion from integers
                 enabled = true
             },
-            name = "enum_cast"
+            -- Name of the conversion function. Also used as a completion trigger
+            name = "enum_cast",
+            -- Additional completion trigger if present
+            trigger = "cast"
         },
     },
 
@@ -123,8 +128,10 @@ M.default = {
             nullvalue = function(fieldref, type)
                 return 'nullptr'
             end,
-            -- In case we want to call the serialization function differently. This is also a trigger.
-            name = "save"
+            -- Name of the conversion function. Also used as a completion trigger
+            name = "save",
+            -- Additional completion trigger if present
+            trigger = "json"
         },
     },
 
@@ -136,6 +143,8 @@ M.default = {
             placeholder = function(classname, fieldname)
                 return '// ' .. classname .. '::' .. fieldname
             end,
+            -- Completion trigger.
+            trigger = "case"
         },
     }
 }

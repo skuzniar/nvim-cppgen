@@ -248,7 +248,7 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.status()
     return {
-        { "case", "Case switch statements" }
+        { G.switch.enum.trigger, "Case switch statements" }
     }
 end
 
