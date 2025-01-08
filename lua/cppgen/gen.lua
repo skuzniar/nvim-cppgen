@@ -108,13 +108,12 @@ function M.setup(opts)
 end
 
 ---------------------------------------------------------------------------------------------------
---- Status callback
+--- Info callback
 ---------------------------------------------------------------------------------------------------
-function M.status()
-    log.info("Collect status from all generators")
+function M.info()
     local total = {}
     for _,g in pairs(G) do
-        local items = g.status();
+        local items = g.info();
         for _,i in ipairs(items) do
             table.insert(total, i)
         end

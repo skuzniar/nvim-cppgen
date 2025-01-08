@@ -105,7 +105,7 @@ M.default = {
             -- Name of the conversion function. Also used as a completion trigger
             name = "enum_cast",
             -- Additional completion trigger if present
-            trigger = "cast"
+            trigger = "enum_cast"
         },
     },
 

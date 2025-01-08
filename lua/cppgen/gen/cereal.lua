@@ -263,15 +263,15 @@ function M.generate()
 end
 
 ---------------------------------------------------------------------------------------------------
---- Status callback
+--- Info callback
 ---------------------------------------------------------------------------------------------------
 local function combine(name, trigger)
     return name == trigger and name or name .. ' or ' .. trigger
 end
 
-function M.status()
+function M.info()
     return {
-        { combine(G.cereal.class.name, G.cereal.class.trigger), "Generate class serialization function" }
+        { combine(G.cereal.class.name, G.cereal.class.trigger), "Class serialization into JSON" }
     }
 end
 

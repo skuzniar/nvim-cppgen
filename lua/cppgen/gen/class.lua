@@ -217,11 +217,11 @@ function M.generate()
 end
 
 ---------------------------------------------------------------------------------------------------
---- Status callback
+--- Info callback
 ---------------------------------------------------------------------------------------------------
-function M.status()
+function M.info()
     return {
-        { G.class.shift.trigger,  "Class output stream shift operator" }
+        { G.class.shift.trigger or 'friend/inline',  "Class output stream shift operator" }
     }
 end
 

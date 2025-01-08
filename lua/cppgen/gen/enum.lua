@@ -451,13 +451,13 @@ function M.generate()
 end
 
 ---------------------------------------------------------------------------------------------------
---- Status callback
+--- Info callback
 ---------------------------------------------------------------------------------------------------
 local function combine(name, trigger)
     return name == trigger and name or name .. ' or ' .. trigger
 end
 
-function M.status()
+function M.info()
     return {
         { combine(G.enum.to_string.name, G.enum.to_string.trigger), "Enum to string converter"   },
         { combine(G.enum.cast.name, G.enum.cast.trigger),           "Enum from string and enum from underlying type converter" },

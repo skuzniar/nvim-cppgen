@@ -67,16 +67,16 @@ local function pad(s, len)
 end
 
 vim.api.nvim_create_user_command('CPPGenInfo', function()
-    local status = src.status()
+    local info = src.info()
 
-    if #status > 0 then
+    if #info > 0 then
         local header = { 'Trigger', 'Description'}
-        local maxlen, _ = max_lengths(status)
+        local maxlen, _ = max_lengths(info)
         maxlen = math.max(maxlen, string.len(header[1]))
 
         vim.api.nvim_echo({ { (' %s   %s\n'):format(pad(header[1], maxlen), header[2]), 'Special' } }, false, {})
         local prev = nil
-        for _, record in ipairs(status) do
+        for _, record in ipairs(info) do
             if (prev == nil) or (prev ~= record[1]) then
                 vim.api.nvim_echo({ { (' %s - %s\n'):format(pad(record[1], maxlen), record[2]), 'Normal' } }, false, {})
             else
@@ -85,6 +85,6 @@ vim.api.nvim_create_user_command('CPPGenInfo', function()
             prev = record[1]
         end
     end
-end, { desc = 'Check status of cppgen sources' })
+end, { desc = 'Brief information about cppgen sources' })
 
 return M

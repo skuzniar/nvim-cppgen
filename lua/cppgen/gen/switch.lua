@@ -244,9 +244,9 @@ function M.generate()
 end
 
 ---------------------------------------------------------------------------------------------------
---- Status callback
+--- Info callback
 ---------------------------------------------------------------------------------------------------
-function M.status()
+function M.info()
     return {
         { G.switch.enum.trigger, "Case switch statements" }
     }
