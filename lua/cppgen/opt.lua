@@ -101,8 +101,10 @@ M.default = {
                 -- By default we generate this conversion function
                 enabled = true
             },
-            -- No-throw version of enum_cast. Specializations of: template <typename T, typename F> T enum_cast(F f, std::string& error)
+            -- No-throw version of enum_cast. Specializations of: template <typename T, typename F, typename E> T enum_cast(F f, E& error)
             enum_cast_no_throw = {
+                -- Error type that will be passed from the conversion function
+                errortype = 'std::string',
                 -- Error expression returned if conversion fails
                 error = function(classname, value)
                     return '"Value " + std::string(' .. value .. ') + " is outside of ' .. classname .. ' enumeration range."'
@@ -119,8 +121,10 @@ M.default = {
                 -- By default we generate this conversion function
                 enabled = true
             },
-            -- No-throw version of value_cast. Specializations of: template <typename T, typename F> T enum_cast(F f, std::string& error)
+            -- No-throw version of value_cast. Specializations of: template <typename T, typename F, typename E> T enum_cast(F f, E& error)
             value_cast_no_throw = {
+                -- Error type that will be passed from the conversion function
+                errortype = 'std::string',
                 -- Exception expression thrown if conversion fails
                 error = function(classname, value)
                     return '"Value " + std::to_string(' .. value .. ') + " is outside of ' .. classname .. ' enumeration range."'

@@ -32,6 +32,7 @@ local function apply(format)
     result = string.gsub(result, "<fieldname>",  P.fieldname  or '')
     result = string.gsub(result, "<separator>",  P.separator  or '')
     result = string.gsub(result, "<indent>",     P.indent     or '')
+    result = string.gsub(result, "<errortype>",  P.errortype  or '')
 
     return result;
 end
@@ -154,6 +155,7 @@ local function enum_cast_snippet(node, specifier, throw)
     P.attributes = G.attributes and ' ' .. G.attributes or ''
     P.classname  = ast.name(node)
     P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
+    P.errortype = G.enum.cast.enum_cast_no_throw.errortype
 
     local maxllen, _ = max_lengths(utl.enum_records(node))
 
@@ -162,7 +164,7 @@ local function enum_cast_snippet(node, specifier, throw)
     if throw then
         table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(std::string_view e)'))
     else
-        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(std::string_view e, std::string& error) noexcept'))
+        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(std::string_view e, <errortype>& error) noexcept'))
     end
     table.insert(lines, apply('{'))
 
@@ -199,7 +201,7 @@ local function enum_cast_snippet(node, specifier, throw)
         table.insert(lines, apply('<indent>return ' .. G.enum.cast.name .. '<<classname>>(std::string_view(e));'))
         table.insert(lines, apply('}'))
     else
-        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(const char* e, std::string& error) noexcept'))
+        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(const char* e, <errortype>& error) noexcept'))
         table.insert(lines, apply('{'))
         table.insert(lines, apply('<indent>return ' .. G.enum.cast.name .. '<<classname>>(std::string_view(e), error);'))
         table.insert(lines, apply('}'))
@@ -219,6 +221,7 @@ local function value_cast_snippet(node, specifier, throw)
     P.attributes = G.attributes and ' ' .. G.attributes or ''
     P.classname  = ast.name(node)
     P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
+    P.errortype = G.enum.cast.value_cast_no_throw.errortype
 
     local maxllen, _ = max_lengths(utl.enum_records(node))
 
@@ -227,7 +230,7 @@ local function value_cast_snippet(node, specifier, throw)
     if throw then
         table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(int v)'))
     else
-        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(int v, std::string& error) noexcept'))
+        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(int v, <errortype>& error) noexcept'))
     end
     table.insert(lines, apply('{'))
 
@@ -280,7 +283,7 @@ local function value_cast_snippet(node, specifier, throw)
         table.insert(lines, apply('<indent>return ' .. G.enum.cast.name .. '<<classname>>(static_cast<int>(v));'))
         table.insert(lines, apply('}'))
     else
-        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(char v, std::string& error) noexcept'))
+        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(char v, <errortype>& error) noexcept'))
         table.insert(lines, apply('{'))
         table.insert(lines, apply('<indent>return ' .. G.enum.cast.name .. '<<classname>>(static_cast<int>(v), error);'))
         table.insert(lines, apply('}'))
