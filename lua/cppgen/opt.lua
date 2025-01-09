@@ -55,7 +55,7 @@ M.default = {
             end,
             -- Separator between fields
             separator = "' '",
-            -- Will be triggered by the first word of the function, but also by this
+            -- Completion trigger. Will also use the first word of the function definition line
             trigger = "shift"
         }
     },
