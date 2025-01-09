@@ -70,7 +70,7 @@ vim.api.nvim_create_user_command('CPPGenInfo', function()
     local info = src.info()
 
     if #info > 0 then
-        local header = { 'Trigger', 'Description'}
+        local header = { 'Trigger', 'Generated code'}
         local maxlen, _ = max_lengths(info)
         maxlen = math.max(maxlen, string.len(header[1]))
 

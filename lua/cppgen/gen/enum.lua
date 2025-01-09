@@ -508,11 +508,26 @@ local function combine(name, trigger)
 end
 
 function M.info()
-    return {
-        { combine(G.enum.to_string.name, G.enum.to_string.trigger), "Enum to string converter"   },
-        { combine(G.enum.cast.name, G.enum.cast.trigger),           "Enum from string and enum from underlying type converter" },
-        { G.enum.shift.trigger,                                     "Enum output stream shift operator" }
-    }
+    local info = {}
+    table.insert(info, { combine(G.enum.to_string.name, G.enum.to_string.trigger), "Enum to string converter" })
+
+    local trigger = combine(G.enum.cast.name, G.enum.cast.trigger)
+    if G.enum.cast.enum_cast.enabled then
+        table.insert(info, { trigger, "Throwing version of enum from string converter" })
+    end
+    if G.enum.cast.enum_cast_no_throw.enabled then
+        table.insert(info, { trigger, "Non throwing version of enum from string converter" })
+    end
+    if G.enum.cast.value_cast.enabled then
+        table.insert(info, { trigger, "Throwing version of enum from the underlying type converter" })
+    end
+    if G.enum.cast.value_cast_no_throw.enabled then
+        table.insert(info, { trigger, "Non throwing version of enum from the underlying type converter" })
+    end
+
+    table.insert(info, { G.enum.shift.trigger, "Enum output stream shift operator" })
+
+    return info
 end
 
 ---------------------------------------------------------------------------------------------------
