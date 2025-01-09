@@ -169,9 +169,13 @@ M.default = {
     switch = {
         -- Switch on enums
         enum = {
-            -- Part that will go between case and breqk
-            placeholder = function(classname, fieldname)
-                return '// ' .. classname .. '::' .. fieldname
+            -- Part that will go between case and break
+            placeholder = function(classname, value)
+                return '// ' .. classname .. '::' .. value
+            end,
+            --  Expression for the default case. If nil, no default case will be generated
+            default = function(classname, value)
+                return '// "Value " + std::to_string(' .. value .. ') + " is outside of ' .. classname .. ' enumeration range."'
             end,
             -- Completion trigger.
             trigger = "case"

@@ -17,6 +17,11 @@ local G = {}
 ---------------------------------------------------------------------------------------------------
 local P = {}
 
+-- Capture parameters
+local lspclient                 = nil
+local condition_reference_node  = nil
+local condition_definition_node = nil
+
 -- Apply parameters to the format string 
 local function apply(format)
     local result  = format
@@ -29,6 +34,7 @@ local function apply(format)
     result = string.gsub(result, "<classname>", P.classname or '')
     result = string.gsub(result, "<fieldname>", P.fieldname or '')
     result = string.gsub(result, "<indent>",    P.indent    or '')
+    result = string.gsub(result, "<default>",   P.default   or '')
 
     return result;
 end
@@ -78,11 +84,18 @@ local function case_enum_snippet(node)
     for _,r in ipairs(records) do
         P.label     = r.label
         P.value     = r.value
-        P.labelpad  = string.rep(' ', maxllen - string.len(r.label))
-        P.valuepad  = string.rep(' ', maxvlen - string.len(r.value))
+        P.labelpad  = string.rep(' ', maxllen - string.len(P.label))
+        P.valuepad  = string.rep(' ', maxvlen - string.len(P.value))
 
         table.insert(lines, apply('case <label>:'))
         table.insert(lines, apply('<indent><value>;'))
+        table.insert(lines, apply('<indent>break;'))
+    end
+
+    P.default = G.switch.enum.default(ast.name(node), ast.name(condition_reference_node))
+    if P.default then
+        table.insert(lines, apply('default:'))
+        table.insert(lines, apply('<indent><default>;'))
         table.insert(lines, apply('<indent>break;'))
     end
 
@@ -105,30 +118,13 @@ local function case_enum_item(node)
     }
 end
 
-local M = {}
-
 local function is_switch(node)
     return node and node.role == "statement" and node.kind == "Switch"
 end
 
-local lspclient = nil
-
---- We need to capture a reference to the LSP client so we implement this callback
-function M.attached(client, bufnr)
-    log.trace("attached", bufnr)
-    lspclient = client
-end
-
-local condition_definition_node = nil
-
---- Generator will call this method before presenting a set of new candidate nodes
-function M.reset()
-    condition_definition_node = nil
-end
-
 --- Given a switch statement node, find the embeded condition node
-local function get_condition_node(node)
-    log.trace("get_condition_node:", "for", ast.details(node))
+local function get_switch_condition_node(node)
+    log.trace("get_switch_condition_node:", "for", ast.details(node))
 
     local cond = nil
     ast.dfs(node,
@@ -164,8 +160,8 @@ local function get_type_definition_node(symbols, range)
 end
 
 --- Given a condition node location, request the AST for it
-local function get_condition_type_ast(location)
-    log.trace("get_condition_type_ast:", location)
+local function get_switch_condition_type_ast(location)
+    log.trace("get_switch_condition_type_ast:", location)
 
 	local params = { textDocument = vim.lsp.util.make_text_document_params() }
     params.textDocument.uri = location.uri
@@ -187,24 +183,42 @@ local function get_condition_type_ast(location)
 end
 
 --- Given a condition node, request the type for it
-local function get_condition_type_definition(node)
-    log.trace("get_condition_type_definition:", ast.details(node))
+local function get_switch_condition_type_definition(node)
+    log.trace("get_switch_condition_type_definition:", ast.details(node))
 
     local params = vim.lsp.util.make_position_params();
 
     params.position.line      = node.range.start.line
     params.position.character = node.range.start.character
-    log.trace("get_condition_type_definition:", "params", params)
+    log.trace("get_switch_condition_type_definition:", "params", params)
 
     if lspclient then
 	    lspclient.request("textDocument/typeDefinition", params, function(err, symbols, _)
             if err ~= nil then
                 log.error(err)
             else
-                get_condition_type_ast(symbols[1])
+                get_switch_condition_type_ast(symbols[1])
 		    end
 	    end)
     end
+end
+
+local M = {}
+
+---------------------------------------------------------------------------------------------------
+--- We need to capture a reference to the LSP client so we implement this callback
+---------------------------------------------------------------------------------------------------
+function M.attached(client, bufnr)
+    log.trace("attached", bufnr)
+    lspclient = client
+end
+
+---------------------------------------------------------------------------------------------------
+--- Generator will call this method before presenting a set of new candidate nodes
+---------------------------------------------------------------------------------------------------
+function M.reset()
+    condition_reference_node  = nil
+    condition_definition_node = nil
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -213,10 +227,11 @@ end
 function M.visit(node, line)
     -- We can attempt to generate the switch statement if we are inside of a switch node
     if ast.encloses(node, line) and is_switch(node) then
-        local cond = get_condition_node(node)
+        local cond = get_switch_condition_node(node)
         if cond then
             log.trace("visit:", "condition node", ast.details(cond))
-            get_condition_type_definition(cond)
+            condition_reference_node = cond
+            get_switch_condition_type_definition(cond)
         end
     end
 end
