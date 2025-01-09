@@ -147,7 +147,7 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Generate enumerator cast. Converts from string matching on enumerator name.
 ---------------------------------------------------------------------------------------------------
-local function enum_cast_snippet(node, specifier)
+local function enum_cast_snippet(node, specifier, throw)
     log.trace("enum_cast_snippet:", ast.details(node))
 
     P.specifier  = specifier
@@ -159,7 +159,11 @@ local function enum_cast_snippet(node, specifier)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(std::string_view e)'))
+    if throw then
+        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(std::string_view e)'))
+    else
+        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(std::string_view e, std::string& error) noexcept'))
+    end
     table.insert(lines, apply('{'))
 
     if G.keepindent then
@@ -179,14 +183,27 @@ local function enum_cast_snippet(node, specifier)
         table.insert(lines, apply('<indent>// clang-format on'))
     end
 
-    table.insert(lines, apply('<indent>throw ' .. G.enum.cast.enum_cast.exception(P.classname, 'e') .. ';'))
+    if throw then
+        table.insert(lines, apply('<indent>throw ' .. G.enum.cast.enum_cast.exception(P.classname, 'e') .. ';'))
+    else
+        table.insert(lines, apply('<indent>error = ' .. G.enum.cast.enum_cast_no_throw.error(P.classname, 'e') .. ';'))
+        table.insert(lines, apply('<indent>return <classname>{};'))
+    end
+
     table.insert(lines, apply('}'))
 
     -- Add a forwarding function that takes char pointer and forwards it as string view
-    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(const char* e)'))
-    table.insert(lines, apply('{'))
-    table.insert(lines, apply('<indent>return ' .. G.enum.cast.name .. '<<classname>>(std::string_view(e));'))
-    table.insert(lines, apply('}'))
+    if throw then
+        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(const char* e)'))
+        table.insert(lines, apply('{'))
+        table.insert(lines, apply('<indent>return ' .. G.enum.cast.name .. '<<classname>>(std::string_view(e));'))
+        table.insert(lines, apply('}'))
+    else
+        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(const char* e, std::string& error) noexcept'))
+        table.insert(lines, apply('{'))
+        table.insert(lines, apply('<indent>return ' .. G.enum.cast.name .. '<<classname>>(std::string_view(e), error);'))
+        table.insert(lines, apply('}'))
+    end
 
     for _,l in ipairs(lines) do log.debug(l) end
     return lines
@@ -195,7 +212,7 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Generate enumerator cast. Converts from integer matching on enumerator value.
 ---------------------------------------------------------------------------------------------------
-local function value_cast_snippet(node, specifier)
+local function value_cast_snippet(node, specifier, throw)
     log.trace("value_cast_snippet:", ast.details(node))
 
     P.specifier  = specifier
@@ -207,7 +224,11 @@ local function value_cast_snippet(node, specifier)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(int v)'))
+    if throw then
+        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(int v)'))
+    else
+        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(int v, std::string& error) noexcept'))
+    end
     table.insert(lines, apply('{'))
 
     local cnt = ast.count_children(node,
@@ -244,14 +265,26 @@ local function value_cast_snippet(node, specifier)
     table.insert(lines, apply('<indent>{'))
     table.insert(lines, apply('<indent><indent>return static_cast<<classname>>(v);'))
     table.insert(lines, apply('<indent>}'))
-    table.insert(lines, apply('<indent>throw ' .. G.enum.cast.value_cast.exception(P.classname, 'v') .. ';'))
+    if throw then
+        table.insert(lines, apply('<indent>throw ' .. G.enum.cast.value_cast.exception(P.classname, 'v') .. ';'))
+    else
+        table.insert(lines, apply('<indent>error = ' .. G.enum.cast.value_cast_no_throw.error(P.classname, 'v') .. ';'))
+        table.insert(lines, apply('<indent>return <classname>{};'))
+    end
     table.insert(lines, apply('}'))
 
     -- Add a forwarding function that takes char and forwards it as integer
-    table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(char v)'))
-    table.insert(lines, apply('{'))
-    table.insert(lines, apply('<indent>return ' .. G.enum.cast.name .. '<<classname>>(static_cast<int>(v));'))
-    table.insert(lines, apply('}'))
+    if throw then
+        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(char v)'))
+        table.insert(lines, apply('{'))
+        table.insert(lines, apply('<indent>return ' .. G.enum.cast.name .. '<<classname>>(static_cast<int>(v));'))
+        table.insert(lines, apply('}'))
+    else
+        table.insert(lines, apply('<specifier><attributes> <classname> ' .. G.enum.cast.name .. '(char v, std::string& error) noexcept'))
+        table.insert(lines, apply('{'))
+        table.insert(lines, apply('<indent>return ' .. G.enum.cast.name .. '<<classname>>(static_cast<int>(v), error);'))
+        table.insert(lines, apply('}'))
+    end
 
     for _,l in ipairs(lines) do log.debug(l) end
     return lines
@@ -292,16 +325,20 @@ end
 local function cast_member_items(node)
     log.trace("enum_cast_member_items:", ast.details(node))
     return cast_items(
-        G.enum.cast.enum_cast.enabled  and enum_cast_snippet  (node, 'template <>') or {},
-        G.enum.cast.value_cast.enabled and value_cast_snippet (node, 'template <>') or {})
+        G.enum.cast.enum_cast.enabled           and enum_cast_snippet (node, 'template <>', true ) or {},
+        G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippet (node, 'template <>', false) or {},
+        G.enum.cast.value_cast.enabled          and value_cast_snippet(node, 'template <>', true ) or {},
+        G.enum.cast.value_cast_no_throw.enabled and value_cast_snippet(node, 'template <>', false) or {})
 end
 
 -- Generate from string enumerator free function snippet item for an enum type node.
 local function cast_free_items(node)
     log.trace("enum_cast_free_items:", ast.details(node))
     return cast_items(
-        G.enum.cast.enum_cast.enabled  and enum_cast_snippet  (node, 'template <> inline') or {},
-        G.enum.cast.value_cast.enabled and value_cast_snippet (node, 'template <> inline') or {})
+        G.enum.cast.enum_cast.enabled           and enum_cast_snippet (node, 'template <> inline', true ) or {},
+        G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippet (node, 'template <> inline', false) or {},
+        G.enum.cast.value_cast.enabled          and value_cast_snippet(node, 'template <> inline', true ) or {},
+        G.enum.cast.value_cast_no_throw.enabled and value_cast_snippet(node, 'template <> inline', false) or {})
 end
 
 ---------------------------------------------------------------------------------------------------
