@@ -34,18 +34,19 @@ end
 local function apply(format)
     local result  = format
 
-    result = string.gsub(result, "<label>",      P.label      or '')
-    result = string.gsub(result, "<labelpad>",   P.labelpad   or '')
-    result = string.gsub(result, "<value>",      P.value      or '')
-    result = string.gsub(result, "<valuepad>",   P.valuepad   or '')
-    result = string.gsub(result, "<specifier>",  P.specifier  or '')
-    result = string.gsub(result, "<attributes>", P.attributes or '')
-    result = string.gsub(result, "<classname>",  P.classname  or '')
-    result = string.gsub(result, "<fieldname>",  P.fieldname  or '')
-    result = string.gsub(result, "<indent>",     P.indent     or '')
+    result = string.gsub(result, "<label>",        P.label        or '')
+    result = string.gsub(result, "<labelpad>",     P.labelpad     or '')
+    result = string.gsub(result, "<value>",        P.value        or '')
+    result = string.gsub(result, "<valuepad>",     P.valuepad     or '')
+    result = string.gsub(result, "<specifier>",    P.specifier    or '')
+    result = string.gsub(result, "<attributes>",   P.attributes   or '')
+    result = string.gsub(result, "<classname>",    P.classname    or '')
+    result = string.gsub(result, "<functionname>", P.functionname or '')
+    result = string.gsub(result, "<fieldname>",    P.fieldname    or '')
+    result = string.gsub(result, "<indent>",       P.indent       or '')
 
-    result = string.gsub(result, "<nullcheck>",  P.nullcheck  or '')
-    result = string.gsub(result, "<nullvalue>",  P.nullvalue  or '')
+    result = string.gsub(result, "<nullcheck>",    P.nullcheck    or '')
+    result = string.gsub(result, "<nullvalue>",    P.nullvalue    or '')
 
     return result;
 end
@@ -99,10 +100,11 @@ end
 local function save_class_snippet(node, specifier, member)
     log.debug("save_class_snippet:", ast.details(node))
 
-    P.specifier  = specifier
-    P.attributes = G.attributes and ' ' .. G.attributes or ''
-    P.classname  = ast.name(node)
-    P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
+    P.specifier    = specifier
+    P.attributes   = G.attributes and ' ' .. G.attributes or ''
+    P.classname    = ast.name(node)
+    P.functionname = G.cereal.class.name
+    P.indent       = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
     local records = member and class_labels_and_values(node) or class_labels_and_values(node, 'o')
     local maxllen, maxvlen = max_lengths(records)
@@ -110,9 +112,9 @@ local function save_class_snippet(node, specifier, member)
     local lines = {}
 
     if member then
-        table.insert(lines, apply('<specifier><attributes> void ' .. G.cereal.class.name .. '(Archive& archive) const'))
+        table.insert(lines, apply('<specifier><attributes> void <functionname>(Archive& archive) const'))
     else
-        table.insert(lines, apply('<specifier><attributes> void ' .. G.cereal.class.name .. '(Archive& archive, const <classname>& o)'))
+        table.insert(lines, apply('<specifier><attributes> void <functionname>(Archive& archive, const <classname>& o)'))
     end
     table.insert(lines, apply('{'))
     if G.keepindent then
