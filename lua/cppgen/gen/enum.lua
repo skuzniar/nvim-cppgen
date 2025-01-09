@@ -179,7 +179,7 @@ local function enum_cast_snippet(node, specifier)
         table.insert(lines, apply('<indent>// clang-format on'))
     end
 
-    table.insert(lines, apply('<indent>throw std::runtime_error("Value " + std::string(e) + " is outside of <classname> enumeration range.");'))
+    table.insert(lines, apply('<indent>throw ' .. G.enum.cast.enum_cast.exception(P.classname, 'e') .. ';'))
     table.insert(lines, apply('}'))
 
     -- Add a forwarding function that takes char pointer and forwards it as string view
@@ -244,7 +244,7 @@ local function value_cast_snippet(node, specifier)
     table.insert(lines, apply('<indent>{'))
     table.insert(lines, apply('<indent><indent>return static_cast<<classname>>(v);'))
     table.insert(lines, apply('<indent>}'))
-    table.insert(lines, apply('<indent>throw std::runtime_error("Value " + std::to_string(v) + " is outside of <classname> enumeration range.");'))
+    table.insert(lines, apply('<indent>throw ' .. G.enum.cast.value_cast.exception(P.classname, 'v') .. ';'))
     table.insert(lines, apply('}'))
 
     -- Add a forwarding function that takes char and forwards it as integer

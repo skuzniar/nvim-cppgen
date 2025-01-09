@@ -94,11 +94,19 @@ M.default = {
         cast = {
             -- From string conversion function. Matches enumerator name. Specializations of: template <typename T, typename F> T enum_cast(F f)
             enum_cast = {
+                -- Exception expression thrown if conversion fails
+                exception = function(classname, value)
+                    return 'std::out_of_range("Value " + std::string(' .. value .. ') + " is outside of ' .. classname .. ' enumeration range.")'
+                end,
                 -- By default we generate conversion from string
                 enabled = true
             },
             -- From integer conversion function. Matches enumerator value. Specializations of: template <typename T, typename F> T enum_cast(F f)
             value_cast = {
+                -- Exception expression thrown if conversion fails
+                exception = function(classname, value)
+                    return 'std::out_of_range("Value " + std::to_string(' .. value .. ') + " is outside of ' .. classname .. ' enumeration range.")'
+                end,
                 -- By default we generate conversion from integers
                 enabled = true
             },
