@@ -49,6 +49,10 @@ log.new = function(config, standalone)
 
   --print(outfile)
 
+  if config.use_file and config.truncate then
+    io.open(outfile,"w"):close()
+  end
+
   local obj
   if standalone then
     obj = log

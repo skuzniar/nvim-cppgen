@@ -209,7 +209,7 @@ local M = {}
 --- We need to capture a reference to the LSP client so we implement this callback
 ---------------------------------------------------------------------------------------------------
 function M.attached(client, bufnr)
-    log.trace("attached", bufnr)
+    log.trace("Attached client", client.id, "buffer", bufnr)
     lspclient = client
 end
 

@@ -25,9 +25,14 @@ end
 M.default = {
     -- Logging options
     log = {
+        -- Name of the log file
         plugin      = 'cppgen',
+        -- Log level - obviously
         level       = 'info',
-        use_console = false
+        -- Do not print to console
+        use_console = false,
+        -- Truncate log file on start
+        truncate    = true
     },
 
     -- Disclaimer and attributes. Set to empty string to disable
