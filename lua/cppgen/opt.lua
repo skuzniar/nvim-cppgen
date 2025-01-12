@@ -26,16 +26,16 @@ M.default = {
     -- Logging options
     log = {
         -- Name of the log file
-        plugin      = 'cppgen',
-        -- Log level - obviously
-        level       = 'info',
+        plugin = 'cppgen',
+        -- Log level
+        level = 'info',
         -- Do not print to console
         use_console = false,
         -- Truncate log file on start
-        truncate    = true
+        truncate = true
     },
 
-    -- Disclaimer and attributes. Set to empty string to disable
+    -- Disclaimer and attributes. Probably want one or the other. Set to empty string to disable
     disclaimer = '// Auto-generated using cppgen',
     attributes = '[[cppgen::auto]]',
 
@@ -144,7 +144,7 @@ M.default = {
         },
     },
 
-    -- JSON serialization using cereal library
+    -- Serialization using cereal library
     cereal = {
         -- Class serialization options
         class = {
