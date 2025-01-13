@@ -30,7 +30,7 @@ cppgen can generate the following code snippets.
 **Using [lazy.nvim](https://github.com/folke/lazy.nvim):**
 ```lua
 {
-    "skuzniar/nvim-cppgen",
+    "skuzniar/cppgen.nvim",
     dependencies = {
         "hrsh7th/nvim-cmp",
         "neovim/nvim-lspconfig"
@@ -43,7 +43,7 @@ For a complete list of options see the [Customization](#customization) section.
 ## Configuration:
 
 ### nvim-cmp:
-To link cmp with this source, go into your cmp configuration file and include `{ name = "cppgen" }` under sources
+To link cmp with this source, go into your cmp configuration file and include `{ name = "cppgen" }` under sources.
 
 ```lua
 cmp.setup {
