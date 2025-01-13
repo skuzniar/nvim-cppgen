@@ -27,7 +27,7 @@ local function apply(format)
     result = string.gsub(result, "<value>",        P.value        or '')
     result = string.gsub(result, "<valuepad>",     P.valuepad     or '')
     result = string.gsub(result, "<specifier>",    P.specifier    or '')
-    result = string.gsub(result, "<attributes>",   P.attributes   or '')
+    result = string.gsub(result, "<attribute>",    P.attribute    or '')
     result = string.gsub(result, "<classname>",    P.classname    or '')
     result = string.gsub(result, "<functionname>", P.functionname or '')
     result = string.gsub(result, "<fieldname>",    P.fieldname    or '')
@@ -77,7 +77,7 @@ local function to_string_snippet(node, specifier)
     log.trace("to_string_snippet:", ast.details(node))
 
     P.specifier    = specifier
-    P.attributes   = G.attributes and ' ' .. G.attributes or ''
+    P.attribute    = G.attribute and ' ' .. G.attribute or ''
     P.classname    = ast.name(node)
     P.functionname = G.enum.to_string.name
     P.indent       = string.rep(' ', vim.lsp.util.get_effective_tabstop())
@@ -87,7 +87,7 @@ local function to_string_snippet(node, specifier)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier><attributes> std::string <functionname>(<classname> o)'))
+    table.insert(lines, apply('<specifier><attribute> std::string <functionname>(<classname> o)'))
     table.insert(lines, apply('{'))
     table.insert(lines, apply('<indent>switch(o)'))
     table.insert(lines, apply('<indent>{'))
@@ -156,7 +156,7 @@ local function enum_cast_snippet(node, specifier, throw)
     log.trace("enum_cast_snippet:", ast.details(node))
 
     P.specifier    = specifier
-    P.attributes   = G.attributes and ' ' .. G.attributes or ''
+    P.attribute    = G.attribute and ' ' .. G.attribute or ''
     P.classname    = ast.name(node)
     P.functionname = G.enum.cast.name
     P.indent       = string.rep(' ', vim.lsp.util.get_effective_tabstop())
@@ -169,9 +169,9 @@ local function enum_cast_snippet(node, specifier, throw)
     local lines = {}
 
     if throw then
-        table.insert(lines, apply('<specifier><attributes> <classname> <functionname>(std::string_view e)'))
+        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(std::string_view e)'))
     else
-        table.insert(lines, apply('<specifier><attributes> <classname> <functionname>(std::string_view e, <errortype>& error) noexcept'))
+        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(std::string_view e, <errortype>& error) noexcept'))
     end
     table.insert(lines, apply('{'))
 
@@ -203,12 +203,12 @@ local function enum_cast_snippet(node, specifier, throw)
 
     -- Add a forwarding function that takes char pointer and forwards it as string view
     if throw then
-        table.insert(lines, apply('<specifier><attributes> <classname> <functionname>(const char* e)'))
+        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(const char* e)'))
         table.insert(lines, apply('{'))
         table.insert(lines, apply('<indent>return <functionname><<classname>>(std::string_view(e));'))
         table.insert(lines, apply('}'))
     else
-        table.insert(lines, apply('<specifier><attributes> <classname> <functionname>(const char* e, <errortype>& error) noexcept'))
+        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(const char* e, <errortype>& error) noexcept'))
         table.insert(lines, apply('{'))
         table.insert(lines, apply('<indent>return <functionname><<classname>>(std::string_view(e), error);'))
         table.insert(lines, apply('}'))
@@ -225,7 +225,7 @@ local function value_cast_snippet(node, specifier, throw)
     log.trace("value_cast_snippet:", ast.details(node))
 
     P.specifier    = specifier
-    P.attributes   = G.attributes and ' ' .. G.attributes or ''
+    P.attribute    = G.attribute and ' ' .. G.attribute or ''
     P.classname    = ast.name(node)
     P.functionname = G.enum.cast.name
     P.indent       = string.rep(' ', vim.lsp.util.get_effective_tabstop())
@@ -238,9 +238,9 @@ local function value_cast_snippet(node, specifier, throw)
     local lines = {}
 
     if throw then
-        table.insert(lines, apply('<specifier><attributes> <classname> <functionname>(int v)'))
+        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(int v)'))
     else
-        table.insert(lines, apply('<specifier><attributes> <classname> <functionname>(int v, <errortype>& error) noexcept'))
+        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(int v, <errortype>& error) noexcept'))
     end
     table.insert(lines, apply('{'))
 
@@ -288,12 +288,12 @@ local function value_cast_snippet(node, specifier, throw)
 
     -- Add a forwarding function that takes char and forwards it as integer
     if throw then
-        table.insert(lines, apply('<specifier><attributes> <classname> <functionname>(char v)'))
+        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(char v)'))
         table.insert(lines, apply('{'))
         table.insert(lines, apply('<indent>return <functionname><<classname>>(static_cast<int>(v));'))
         table.insert(lines, apply('}'))
     else
-        table.insert(lines, apply('<specifier><attributes> <classname> <functionname>(char v, <errortype>& error) noexcept'))
+        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(char v, <errortype>& error) noexcept'))
         table.insert(lines, apply('{'))
         table.insert(lines, apply('<indent>return <functionname><<classname>>(static_cast<int>(v), error);'))
         table.insert(lines, apply('}'))
@@ -360,17 +360,17 @@ end
 local function shift_snippet(node, specifier)
     log.trace("shift_snippet:", ast.details(node))
 
-    P.specifier  = specifier
-    P.attributes = G.attributes and ' ' .. G.attributes or ''
-    P.classname  = ast.name(node)
-    P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
+    P.specifier = specifier
+    P.attribute = G.attribute and ' ' .. G.attribute or ''
+    P.classname = ast.name(node)
+    P.indent    = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
     local records = labels_and_values(node, G.enum.shift.value)
     local maxllen, maxvlen = max_lengths(records)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier><attributes> std::ostream& operator<<(std::ostream& s, <classname> o)'))
+    table.insert(lines, apply('<specifier><attribute> std::ostream& operator<<(std::ostream& s, <classname> o)'))
     table.insert(lines, apply('{'))
     table.insert(lines, apply('<indent>switch(o)'))
     table.insert(lines, apply('<indent>{'))
@@ -535,7 +535,7 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
     G.keepindent = opts.keepindent
-    G.attributes = opts.attributes
+    G.attribute  = opts.attribute
     G.enum       = opts.enum
 end
 

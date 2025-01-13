@@ -64,22 +64,18 @@ function M:complete(params, callback)
     log.trace('complete:', params)
     local items = gen.generate(params.context.bufnr)
     if items then
-        if G.disclaimer and string.len(G.disclaimer) > 0 then
-            for _,item in ipairs(items) do
-                item.insertText = G.disclaimer .. '\n' .. item.insertText
-            end
-        end
         callback(items)
     end
 end
 
 --- Resolve completion item (optional). This is called right before the completion is about to be displayed.
---[[
 function M:resolve(completion_item, callback)
-    log.trace('resolve')
+    log.trace('resolve:', completion_item)
+    if G.disclaimer and string.len(G.disclaimer) > 0 then
+        completion_item.insertText = G.disclaimer .. '\n' .. completion_item.insertText
+    end
     callback(completion_item)
 end
-]]
 
 --- Executed after the item was selected.
 --[[

@@ -34,16 +34,16 @@ end
 local function apply(format)
     local result  = format
 
-    result = string.gsub(result, "<label>",      P.label      or '')
-    result = string.gsub(result, "<labelpad>",   P.labelpad   or '')
-    result = string.gsub(result, "<value>",      P.value      or '')
-    result = string.gsub(result, "<valuepad>",   P.valuepad   or '')
-    result = string.gsub(result, "<specifier>",  P.specifier  or '')
-    result = string.gsub(result, "<attributes>", P.attributes or '')
-    result = string.gsub(result, "<classname>",  P.classname  or '')
-    result = string.gsub(result, "<fieldname>",  P.fieldname  or '')
-    result = string.gsub(result, "<separator>",  P.separator  or '')
-    result = string.gsub(result, "<indent>",     P.indent     or '')
+    result = string.gsub(result, "<label>",     P.label      or '')
+    result = string.gsub(result, "<labelpad>",  P.labelpad   or '')
+    result = string.gsub(result, "<value>",     P.value      or '')
+    result = string.gsub(result, "<valuepad>",  P.valuepad   or '')
+    result = string.gsub(result, "<specifier>", P.specifier  or '')
+    result = string.gsub(result, "<attribute>", P.attribute or '')
+    result = string.gsub(result, "<classname>", P.classname  or '')
+    result = string.gsub(result, "<fieldname>", P.fieldname  or '')
+    result = string.gsub(result, "<separator>", P.separator  or '')
+    result = string.gsub(result, "<indent>",    P.indent     or '')
 
     return result;
 end
@@ -70,18 +70,18 @@ end
 local function shift_snippet(node, specifier)
     log.debug("shift_snippet:", ast.details(node))
 
-    P.specifier  = specifier
-    P.attributes = G.attributes and ' ' .. G.attributes or ''
-    P.classname  = ast.name(node)
-    P.separator  = G.class.shift.separator
-    P.indent     = string.rep(' ', vim.lsp.util.get_effective_tabstop())
+    P.specifier = specifier
+    P.attribute = G.attribute and ' ' .. G.attribute or ''
+    P.classname = ast.name(node)
+    P.separator = G.class.shift.separator
+    P.indent    = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
     local records = labels_and_values(node, 'o')
     local maxllen, maxvlen = max_lengths(records)
 
     local lines = {}
 
-    table.insert(lines, apply('<specifier><attributes> std::ostream& operator<<(std::ostream& s, const <classname>& o)'))
+    table.insert(lines, apply('<specifier><attribute> std::ostream& operator<<(std::ostream& s, const <classname>& o)'))
     table.insert(lines, apply('{'))
     if G.keepindent then
         table.insert(lines, apply('<indent>// clang-format off'))
@@ -230,7 +230,7 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
     G.keepindent = opts.keepindent
-    G.attributes = opts.attributes
+    G.attribute  = opts.attribute
     G.class      = opts.class
 end
 
