@@ -238,9 +238,9 @@ local function value_cast_snippet(node, specifier, throw)
     local lines = {}
 
     if throw then
-        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(int v)'))
+        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(std::underlying_type_t<<classname>> v)'))
     else
-        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(int v, <errortype>& error) noexcept'))
+        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(std::underlying_type_t<<classname>> v, <errortype>& error) noexcept'))
     end
     table.insert(lines, apply('{'))
 
@@ -285,19 +285,6 @@ local function value_cast_snippet(node, specifier, throw)
         table.insert(lines, apply('<indent>return <classname>{};'))
     end
     table.insert(lines, apply('}'))
-
-    -- Add a forwarding function that takes char and forwards it as integer
-    if throw then
-        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(char v)'))
-        table.insert(lines, apply('{'))
-        table.insert(lines, apply('<indent>return <functionname><<classname>>(static_cast<int>(v));'))
-        table.insert(lines, apply('}'))
-    else
-        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(char v, <errortype>& error) noexcept'))
-        table.insert(lines, apply('{'))
-        table.insert(lines, apply('<indent>return <functionname><<classname>>(static_cast<int>(v), error);'))
-        table.insert(lines, apply('}'))
-    end
 
     for _,l in ipairs(lines) do log.debug(l) end
     return lines
@@ -468,7 +455,7 @@ end
 --- Generator will call this method to check if the module can generate code
 ---------------------------------------------------------------------------------------------------
 function M.available()
-    return enclosing_node ~= nil or preceding_node ~= nil
+    return preceding_node ~= nil
 end
 
 -- Add elements of one table into another table
