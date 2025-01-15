@@ -173,8 +173,7 @@ local function enum_cast_snippet(node, specifier, throw)
     else
         table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(std::string_view e, <errortype>& error) noexcept'))
     end
-    table.insert(lines, apply('{'))
-
+    table.insert(lines, '{')
     if G.keepindent then
         table.insert(lines, apply('<indent>// clang-format off'))
     end
@@ -191,17 +190,16 @@ local function enum_cast_snippet(node, specifier, throw)
     if G.keepindent then
         table.insert(lines, apply('<indent>// clang-format on'))
     end
-
     if throw then
         table.insert(lines, apply('<indent>throw <exception>;'))
     else
         table.insert(lines, apply('<indent>error = <error>;'))
         table.insert(lines, apply('<indent>return <classname>{};'))
     end
-
-    table.insert(lines, apply('}'))
+    table.insert(lines, '}')
 
     -- Add a forwarding function that takes char pointer and forwards it as string view
+    table.insert(lines, '')
     if throw then
         table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(const char* e)'))
         table.insert(lines, apply('{'))
@@ -242,7 +240,7 @@ local function value_cast_snippet(node, specifier, throw)
     else
         table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(std::underlying_type_t<<classname>> v, <errortype>& error) noexcept'))
     end
-    table.insert(lines, apply('{'))
+    table.insert(lines, '{')
 
     local cnt = ast.count_children(node,
         function(n)
@@ -251,7 +249,6 @@ local function value_cast_snippet(node, specifier, throw)
     )
 
     table.insert(lines, apply('<indent>if ('))
-
     if G.keepindent then
         table.insert(lines, apply('<indent><indent>// clang-format off'))
     end
@@ -284,7 +281,7 @@ local function value_cast_snippet(node, specifier, throw)
         table.insert(lines, apply('<indent>error = <error>;'))
         table.insert(lines, apply('<indent>return <classname>{};'))
     end
-    table.insert(lines, apply('}'))
+    table.insert(lines, '}')
 
     for _,l in ipairs(lines) do log.debug(l) end
     return lines
@@ -295,7 +292,7 @@ local function cast_items(...)
     local lines = ''
     for _,t in ipairs({...}) do
         if next(t) ~= nil then
-            lines = lines .. (lines == '' and '' or '\n') .. table.concat(t, '\n')
+            lines = lines .. (lines == '' and '' or '\n\n') .. table.concat(t, '\n')
         end
     end
 
