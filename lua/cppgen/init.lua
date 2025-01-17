@@ -55,11 +55,9 @@ function M.setup(opts)
 		callback = function(args)
             if vim.bo.filetype == "cpp" then
 			    local client = vim.lsp.get_client_by_id(args.data.client_id)
+                log.info("Attached:", log.squoted(client.name), "which", client.server_capabilities.astProvider and "is" or "is not", "capable of delivering AST data.")
 	            if client.server_capabilities.astProvider then
-                    log.debug("LSP server is capable of delivering AST data.")
 				    attach(client, args.buf)
-                else
-                    log.warn("LSP server is not capable of delivering AST data.")
 			    end
 			end
 		end,
