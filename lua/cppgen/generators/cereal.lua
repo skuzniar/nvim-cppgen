@@ -1,6 +1,6 @@
 local ast = require('cppgen.ast')
 local log = require('cppgen.log')
-local utl = require('cppgen.gen.util')
+local utl = require('cppgen.generators.util')
 
 local cmp = require('cmp')
 

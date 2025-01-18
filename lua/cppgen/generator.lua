@@ -1,18 +1,18 @@
-local ast = require('cppgen.ast')
-local ctx = require('cppgen.ctx')
 local log = require('cppgen.log')
+local ast = require('cppgen.ast')
+local ctx = require('cppgen.context')
 
 ---------------------------------------------------------------------------------------------------
--- 1. Collection of code generators. Gathers code completion items from specialized generators.
--- 2. Reacts to editor mode changes to cache results.
+-- Code generator module. Collection of specialized code generators. Reacts to editor mode changes
+-- to request AST from the server and cache the results.
 ---------------------------------------------------------------------------------------------------
 
 -- TODO - populate during configuration
 local G = {
-    require('cppgen.gen.class'),
-    require('cppgen.gen.enum'),
-    require('cppgen.gen.cereal'),
-    require('cppgen.gen.switch')
+    require('cppgen.generators.class'),
+    require('cppgen.generators.enum'),
+    require('cppgen.generators.cereal'),
+    require('cppgen.generators.switch')
 }
 
 --- Reset code generators

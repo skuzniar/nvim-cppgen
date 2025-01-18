@@ -1,7 +1,10 @@
-local opt = require("cppgen.opt")
-local cgn = require("cppgen.cgn")
 local log = require('cppgen.log')
+local opt = require("cppgen.options")
+local cgn = require("cppgen.cppgen")
 
+---------------------------------------------------------------------------------------------------
+-- Bootstrap entry point. Configures code generation module using default and user options.
+---------------------------------------------------------------------------------------------------
 local M = {}
 
 local cppgen = 'cppgen'
