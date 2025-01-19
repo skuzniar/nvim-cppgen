@@ -2,7 +2,8 @@ local log = require('cppgen.log')
 local gen = require('cppgen.generator')
 
 ---------------------------------------------------------------------------------------------------
--- Completion source module. Implements code completion source interface using code generator.
+-- Completion source module. Implements code completion source interface. Uses code generator 
+-- module to supply code snippets.
 ---------------------------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------------------------

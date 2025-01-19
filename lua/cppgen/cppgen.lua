@@ -3,7 +3,9 @@ local ctx = require('cppgen.context')
 local src = require('cppgen.source')
 
 ---------------------------------------------------------------------------------------------------
--- Code generation module. Forwards events to the dependent modules. Completion source proxy.
+-- Code generation module. Forwards events to the dependent modules:
+-- 1. Context module
+-- 2. Code completion source
 ---------------------------------------------------------------------------------------------------
 local M = {}
 

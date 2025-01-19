@@ -69,7 +69,9 @@ end
 --- Exported functions
 local M = {}
 
+---------------------------------------------------------------------------------------------------
 --- Return true if th code can be generated in the current context - buffer and cursor position
+---------------------------------------------------------------------------------------------------
 function M.available(bufnr)
     log.trace("available:", "buffer", bufnr)
     local result = false
@@ -80,7 +82,9 @@ function M.available(bufnr)
     return result
 end
 
+---------------------------------------------------------------------------------------------------
 --- Generate code completion items appropriate for the current context
+---------------------------------------------------------------------------------------------------
 function M.generate(bufnr)
 	local cursor = ctx.context(bufnr)
     if cursor then
@@ -160,6 +164,9 @@ function M.insert_enter(client, bufnr)
     end
 end
 
+---------------------------------------------------------------------------------------------------
+--- Exiting insert mode.
+---------------------------------------------------------------------------------------------------
 function M.insert_leave(client, bufnr)
     log.trace("Exited insert mode client", client.id, "buffer", bufnr)
 end
