@@ -1,6 +1,6 @@
 local log = require('cppgen.log')
 local ctx = require('cppgen.context')
-local src = require('cppgen.source')
+local gen = require('cppgen.generator')
 
 ---------------------------------------------------------------------------------------------------
 -- Code generation module. Forwards events to the dependent modules:
@@ -14,7 +14,7 @@ local M = {}
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
     -- Pass the configuration to the snippet source
-    src.setup(opts)
+    gen.setup(opts)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -23,7 +23,7 @@ end
 function M.attached(client, bufnr)
     log.trace("Attached client", client.id, "buffer", bufnr)
 	ctx.attached(client, bufnr)
-	src.attached(client, bufnr)
+	gen.attached(client, bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ end
 function M.insert_enter(client, bufnr)
     log.trace("Entered insert mode client", client.id, "buffer", bufnr)
 	ctx.insert_enter(client, bufnr)
-	src.insert_enter(client, bufnr)
+	gen.insert_enter(client, bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@ end
 function M.insert_leave(client, bufnr)
     log.trace("Exited insert mode client", client.id, "buffer", bufnr)
 	ctx.insert_leave(client, bufnr)
-	src.insert_leave(client, bufnr)
+	gen.insert_leave(client, bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -49,7 +49,7 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.source()
     log.trace("source")
-    return src.new()
+    return gen.new()
 end
 
 -- Calculate the longest length of the first two element in the records
@@ -69,7 +69,7 @@ local function pad(s, len)
 end
 
 vim.api.nvim_create_user_command('CPPGenInfo', function()
-    local info = src.info()
+    local info = gen.info()
 
     if #info > 0 then
         local header = { 'Trigger', 'Generated code'}
