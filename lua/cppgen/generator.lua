@@ -106,8 +106,8 @@ end
 ---------------------------------------------------------------------------------------------------
 
 --- Return new source
-function M:new()
-    log.trace('new')
+function M:source()
+    log.trace('source')
     return setmetatable({}, { __index = M })
 end
 

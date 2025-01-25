@@ -1,6 +1,7 @@
 local log = require('cppgen.log')
 local ctx = require('cppgen.context')
 local gen = require('cppgen.generator')
+local val = require('cppgen.validator')
 
 ---------------------------------------------------------------------------------------------------
 -- Code generation module. Forwards events to the dependent modules:
@@ -13,8 +14,8 @@ local M = {}
 --- Initialization callback
 ---------------------------------------------------------------------------------------------------
 function M.setup(opts)
-    -- Pass the configuration to the snippet source
     gen.setup(opts)
+    val.setup(opts)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -24,6 +25,7 @@ function M.attached(client, bufnr)
     log.trace("Attached client", client.id, "buffer", bufnr)
 	ctx.attached(client, bufnr)
 	gen.attached(client, bufnr)
+	val.attached(client, bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -33,6 +35,7 @@ function M.insert_enter(client, bufnr)
     log.trace("Entered insert mode client", client.id, "buffer", bufnr)
 	ctx.insert_enter(client, bufnr)
 	gen.insert_enter(client, bufnr)
+	val.insert_enter(client, bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -42,6 +45,7 @@ function M.insert_leave(client, bufnr)
     log.trace("Exited insert mode client", client.id, "buffer", bufnr)
 	ctx.insert_leave(client, bufnr)
 	gen.insert_leave(client, bufnr)
+	val.insert_leave(client, bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -49,7 +53,7 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.source()
     log.trace("source")
-    return gen.new()
+    return gen.source()
 end
 
 -- Calculate the longest length of the first two element in the records

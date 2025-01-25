@@ -57,6 +57,14 @@ function M.details(node)
     end
 end
 
+--- Return node line span.
+function M.span(node)
+    if node and node.range then
+        return { first = node.range['start'].line, last = node.range['end'].line }
+    end
+    return nil
+end
+
 --- Return node name.
 function M.name(node)
     if node then
