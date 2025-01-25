@@ -29,9 +29,12 @@ local G = {
 --- Exported functions
 local M = {}
 
---- Scan current AST and invoke callback on nodes we think may be interesting
+--- Scan current AST, find immediately preceding and closest enclosing nodes and invoke callback on them.
 local function visit_relevant_nodes(symbols, line, callback)
-    log.debug("Looking for relevant nodes at line", line)
+    log.trace("Looking for relevant nodes at line", line)
+
+    local preceding = nil
+    local enclosing = nil
 
     ast.dfs(symbols,
         function(node)
@@ -39,20 +42,29 @@ local function visit_relevant_nodes(symbols, line, callback)
             return ast.encloses(node, line)
         end,
         function(node)
-            if ast.encloses(node, line) then
+            if ast.encloses(node, line) and not ast.overlay(enclosing, node) then
+                enclosing = node
                 log.debug("Found enclosing node", ast.details(node))
                 log.trace(node)
-                callback(node, line)
             end
         end,
         function(node)
-            if ast.precedes(node, line) then
+            if ast.precedes(node, line) and not ast.overlay(preceding, node) then
+                preceding = node
                 log.debug("Found preceding node", ast.details(node))
                 log.trace(node)
-                callback(node, line)
             end
         end
     )
+    -- TODO - handle 'TypeAlias' nodes
+    if preceding then
+        log.debug("Selected preceding node", ast.details(preceding))
+        callback(preceding, line)
+    end
+    if enclosing then
+        log.debug("Selected enclosing node", ast.details(enclosing))
+        callback(enclosing, line)
+    end
 end
 
 --- Visit AST nodes
