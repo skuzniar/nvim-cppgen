@@ -222,11 +222,11 @@ function M.reset()
 end
 
 ---------------------------------------------------------------------------------------------------
---- Generator will call this method with a node and a cursor line location.
+--- Generator will call this method with a node and a node location relative to the cursor
 ---------------------------------------------------------------------------------------------------
-function M.visit(node, line)
+function M.visit(node, location)
     -- We can attempt to generate the switch statement if we are inside of a switch node
-    if ast.encloses(node, line) and is_switch(node) then
+    if location == ast.Encloses and is_switch(node) then
         local cond = get_switch_condition_node(node)
         if cond then
             log.trace("visit:", "condition node", ast.details(cond))

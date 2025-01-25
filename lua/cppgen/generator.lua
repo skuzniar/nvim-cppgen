@@ -59,11 +59,11 @@ local function visit_relevant_nodes(symbols, line, callback)
     -- TODO - handle 'TypeAlias' nodes
     if preceding then
         log.debug("Selected preceding node", ast.details(preceding))
-        callback(preceding, line)
+        callback(preceding, ast.Precedes)
     end
     if enclosing then
         log.debug("Selected enclosing node", ast.details(enclosing))
-        callback(enclosing, line)
+        callback(enclosing, ast.Encloses)
     end
 end
 
@@ -76,9 +76,9 @@ local function visit(symbols, bufnr)
     if cursor ~= nil then
 	    local line = ctx.context(bufnr)[1] - 1
         visit_relevant_nodes(symbols, line,
-            function(n, l)
+            function(node, location)
                 for _,g in pairs(G) do
-                    g.visit(n, l)
+                    g.visit(node, location)
                 end
             end
         )

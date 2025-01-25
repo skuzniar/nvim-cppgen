@@ -1,9 +1,11 @@
-local log = require('cppgen.log')
-
 ---------------------------------------------------------------------------------------------------
 --- AST utilities
 ---------------------------------------------------------------------------------------------------
 local M = {}
+
+--- Node location relative to the cursor
+M.Precedes = 1
+M.Encloses = 2
 
 --- Depth first traversal over AST tree with descend filter, pre and post order operations.
 function M.dfs(node, filt, pref, posf)

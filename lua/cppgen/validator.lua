@@ -72,9 +72,9 @@ end
 local function visit(symbols, bufnr)
     log.trace("visit:", "buffer", bufnr)
     visit_relevant_nodes(symbols, bufnr,
-        function(n)
+        function(node)
             for _,g in pairs(G) do
-                g.validate(n)
+                g.validate(node)
             end
         end
     )

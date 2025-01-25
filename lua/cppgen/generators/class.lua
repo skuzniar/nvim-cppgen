@@ -166,16 +166,16 @@ function M.reset()
 end
 
 ---------------------------------------------------------------------------------------------------
---- Generator will call this method with a node and a cursor line location.
+--- Generator will call this method with a node and a node location relative to the cursor
 ---------------------------------------------------------------------------------------------------
-function M.visit(node, line)
+function M.visit(node, location)
     -- We can generate shift operator for enclosing class node
-    if ast.encloses(node, line) and ast.is_class(node) then
+    if location == ast.Encloses and ast.is_class(node) then
         log.debug("visit:", "Accepted enclosing node", ast.details(node))
         enclosing_node = node
     end
     -- We can generate shift operator for preceding enumeration and class nodes
-    if ast.precedes(node, line) and (ast.is_enum(node) or ast.is_class(node)) then
+    if location == ast.Precedes and (ast.is_enum(node) or ast.is_class(node)) then
         log.debug("visit:", "Accepted preceding node", ast.details(node))
         preceding_node = node
     end
