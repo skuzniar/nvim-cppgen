@@ -32,7 +32,7 @@ M.default = {
         -- Do not print to console
         use_console = false,
         -- Truncate log file on start
-        truncate = true
+        truncate = false
     },
 
     -- Disclaimer comment line placed before the generated code. Set to empty string to disable
