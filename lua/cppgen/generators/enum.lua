@@ -425,7 +425,17 @@ local M = {}
 local enclosing_node = nil
 local preceding_node = nil
 
+---------------------------------------------------------------------------------------------------
+--- Generator will call this method to get kind of nodes that are of interest to each generator.
+---------------------------------------------------------------------------------------------------
+function M.digs()
+    log.trace("digs:")
+    return { "Enum" }
+end
+
+---------------------------------------------------------------------------------------------------
 --- Generator will call this method before presenting a set of new candidate nodes
+---------------------------------------------------------------------------------------------------
 function M.reset()
     log.trace("reset:")
     enclosing_node = nil

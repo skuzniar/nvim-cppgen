@@ -157,6 +157,14 @@ local enclosing_node = nil
 local preceding_node = nil
 
 ---------------------------------------------------------------------------------------------------
+--- Generator will call this method to get kind of nodes that are of interest to each generator.
+---------------------------------------------------------------------------------------------------
+function M.digs()
+    log.trace("digs:")
+    return { "CXXRecord", "ClassTemplate" }
+end
+
+---------------------------------------------------------------------------------------------------
 --- Generator will call this method before presenting a set of new candidate nodes.
 ---------------------------------------------------------------------------------------------------
 function M.reset()

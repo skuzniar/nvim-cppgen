@@ -214,6 +214,14 @@ function M.attached(client, bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------
+--- Generator will call this method to get kind of nodes that are of interest to each generator.
+---------------------------------------------------------------------------------------------------
+function M.digs()
+    log.trace("digs:")
+    return { "Switch" }
+end
+
+---------------------------------------------------------------------------------------------------
 --- Generator will call this method before presenting a set of new candidate nodes
 ---------------------------------------------------------------------------------------------------
 function M.reset()

@@ -1,5 +1,6 @@
 local log = require('cppgen.log')
 local ast = require('cppgen.ast')
+local lsp = require('cppgen.lsp')
 local ctx = require('cppgen.context')
 
 ---------------------------------------------------------------------------------------------------
@@ -12,7 +13,8 @@ local ctx = require('cppgen.context')
 ---------------------------------------------------------------------------------------------------
 local L = {
     disclaimer = '',
-    lspclient  = nil
+    lspclient  = nil,
+    digs       = {}
 }
 
 ---------------------------------------------------------------------------------------------------
@@ -29,6 +31,24 @@ local G = {
 --- Exported functions
 local M = {}
 
+--- Given a type alias node, figure out if it refers to a kind of node that the generators can handle
+local function relevant_type_alias(node)
+    log.trace("relevant_type_alias:", ast.details(node))
+
+    local relevant = nil
+    ast.dfs(node,
+        function(_)
+            return not relevant
+        end,
+        function(n)
+            if n.role == 'type' and L.digs[n.kind] then
+                relevant = n
+            end
+        end
+        )
+    return relevant
+end
+
 --- Scan current AST, find immediately preceding and closest enclosing nodes and invoke callback on them.
 local function visit_relevant_nodes(symbols, line, callback)
     log.trace("Looking for relevant nodes at line", line)
@@ -44,22 +64,32 @@ local function visit_relevant_nodes(symbols, line, callback)
         function(node)
             if ast.encloses(node, line) and not ast.overlay(enclosing, node) then
                 enclosing = node
-                log.debug("Found enclosing node", ast.details(node))
+                --log.debug("Found enclosing node", ast.details(node))
                 log.trace(node)
             end
         end,
         function(node)
             if ast.precedes(node, line) and not ast.overlay(preceding, node) then
                 preceding = node
-                log.debug("Found preceding node", ast.details(node))
+                --log.debug("Found preceding node", ast.details(node))
                 log.trace(node)
             end
         end
     )
-    -- TODO - handle 'TypeAlias' nodes
+
     if preceding then
         log.debug("Selected preceding node", ast.details(preceding))
-        callback(preceding, ast.Precedes)
+        if preceding.kind == 'TypeAlias' then
+            local alias = relevant_type_alias(preceding)
+            if alias and L.lspclient then
+                lsp.get_type_definition(L.lspclient, alias, function(node)
+                    log.debug("Resolved type alias with node:", ast.details(node), " line:", line)
+                    callback(node, ast.Precedes)
+                end)
+            end
+        else
+            callback(preceding, ast.Precedes)
+        end
     end
     if enclosing then
         log.debug("Selected enclosing node", ast.details(enclosing))
@@ -217,6 +247,10 @@ function M.setup(opts)
 
     for _,g in pairs(G) do
         g.setup(opts)
+        -- Collect kind of nodes the generators can handle
+        for _, k in ipairs(g.digs()) do
+            L.digs[k] = true
+        end
     end
 end
 
