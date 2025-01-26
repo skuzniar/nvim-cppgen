@@ -50,10 +50,10 @@ end
 
 --- Scan current AST and invoke callback on nodes we think may be interesting
 local function visit_relevant_nodes(symbols, bufnr, callback)
-    log.debug("Looking for relevant nodes")
+    log.trace("Looking for relevant nodes")
     ast.dfs(symbols,
         function(node)
-            log.debug("Looking at node", ast.details(node))
+            log.trace("Looking at node", ast.details(node))
             return true
         end,
         function(node)

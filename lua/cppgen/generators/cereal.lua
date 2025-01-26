@@ -228,9 +228,9 @@ function M.reset()
 end
 
 ---------------------------------------------------------------------------------------------------
---- Generator will call this method with a node and a node location relative to the cursor
+--- Generator will call this method with a node, optional type alias and a node location
 ---------------------------------------------------------------------------------------------------
-function M.visit(node, location)
+function M.visit(node, alias, location)
     -- We can generate serialization function for enclosing class node
     if location == ast.Encloses and ast.is_class(node) then
         log.debug("visit:", "Accepted enclosing node", ast.details(node))

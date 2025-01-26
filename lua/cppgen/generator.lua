@@ -83,17 +83,17 @@ local function visit_relevant_nodes(symbols, line, callback)
             local alias = relevant_type_alias(preceding)
             if alias and L.lspclient then
                 lsp.get_type_definition(L.lspclient, alias, function(node)
-                    log.debug("Resolved type alias with node:", ast.details(node), " line:", line)
-                    callback(node, ast.Precedes)
+                    log.debug("Resolved type alias:", ast.details(preceding), "using:", ast.details(node), " line:", line)
+                    callback(node, preceding, ast.Precedes)
                 end)
             end
         else
-            callback(preceding, ast.Precedes)
+            callback(preceding, nil, ast.Precedes)
         end
     end
     if enclosing then
         log.debug("Selected enclosing node", ast.details(enclosing))
-        callback(enclosing, ast.Encloses)
+        callback(enclosing, nil, ast.Encloses)
     end
 end
 
@@ -106,9 +106,9 @@ local function visit(symbols, bufnr)
     if cursor ~= nil then
 	    local line = ctx.context(bufnr)[1] - 1
         visit_relevant_nodes(symbols, line,
-            function(node, location)
+            function(node, alias, location)
                 for _,g in pairs(G) do
-                    g.visit(node, location)
+                    g.visit(node, alias, location)
                 end
             end
         )

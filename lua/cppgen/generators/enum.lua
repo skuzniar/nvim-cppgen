@@ -443,9 +443,9 @@ function M.reset()
 end
 
 ---------------------------------------------------------------------------------------------------
---- Generator will call this method with a node and a node location relative to the cursor
+--- Generator will call this method with a node, optional type alias and a node location
 ---------------------------------------------------------------------------------------------------
-function M.visit(node, location)
+function M.visit(node, alias, location)
     -- We can generate conversion function for preceding enumeration node
     if location == ast.Precedes and ast.is_enum(node) then
         log.debug("visit:", "Accepted preceding node", ast.details(node))

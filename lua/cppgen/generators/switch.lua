@@ -230,9 +230,9 @@ function M.reset()
 end
 
 ---------------------------------------------------------------------------------------------------
---- Generator will call this method with a node and a node location relative to the cursor
+--- Generator will call this method with a node, optional type alias and a node location
 ---------------------------------------------------------------------------------------------------
-function M.visit(node, location)
+function M.visit(node, alias, location)
     -- We can attempt to generate the switch statement if we are inside of a switch node
     if location == ast.Encloses and is_switch(node) then
         local cond = get_switch_condition_node(node)
