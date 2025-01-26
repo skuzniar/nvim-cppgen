@@ -67,7 +67,7 @@ local function labels_and_values(node, object)
 end
 
 -- Generate output stream shift operator for a class type node.
-local function shift_snippet(node, specifier)
+local function shift_snippet(node, alias, specifier)
     log.debug("shift_snippet:", ast.details(node))
 
     P.specifier = specifier
@@ -142,13 +142,13 @@ end
 -- Generate output stream shift member operator completion item for a class type node.
 local function shift_member_items(node, alias)
     log.trace("shift_member_items:", ast.details(node))
-    return shift_items(shift_snippet(node, 'friend'))
+    return shift_items(shift_snippet(node, alias, 'friend'))
 end
 
 -- Generate output stream shift free operator completion item for a class type node.
 local function shift_free_items(node, alias)
     log.trace("shift_free_items:", ast.details(node))
-    return shift_items(shift_snippet(node, 'inline'))
+    return shift_items(shift_snippet(node, alias, 'inline'))
 end
 
 local M = {}

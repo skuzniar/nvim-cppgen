@@ -73,7 +73,7 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Generate to string converter.
 ---------------------------------------------------------------------------------------------------
-local function to_string_snippet(node, specifier)
+local function to_string_snippet(node, alias, specifier)
     log.trace("to_string_snippet:", ast.details(node))
 
     P.specifier    = specifier
@@ -140,19 +140,19 @@ end
 -- Generate to string member function converter completion item for an enum type node.
 local function to_string_member_items(node, alias)
     log.trace("to_string_member_items:", ast.details(node))
-    return to_string_items(to_string_snippet(node, 'friend'))
+    return to_string_items(to_string_snippet(node, alias, 'friend'))
 end
 
 -- Generate to string free function converter completion item for an enum type node.
 local function to_string_free_items(node, alias)
     log.trace("to_string_free_items:", ast.details(node))
-    return to_string_items(to_string_snippet(node, 'inline'))
+    return to_string_items(to_string_snippet(node, alias, 'inline'))
 end
 
 ---------------------------------------------------------------------------------------------------
 -- Generate enumerator cast. Converts from string matching on enumerator name.
 ---------------------------------------------------------------------------------------------------
-local function enum_cast_snippet(node, specifier, throw)
+local function enum_cast_snippet(node, alias, specifier, throw)
     log.trace("enum_cast_snippet:", ast.details(node))
 
     P.specifier    = specifier
@@ -219,7 +219,7 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Generate enumerator cast. Converts from integer matching on enumerator value.
 ---------------------------------------------------------------------------------------------------
-local function value_cast_snippet(node, specifier, throw)
+local function value_cast_snippet(node, alias, specifier, throw)
     log.trace("value_cast_snippet:", ast.details(node))
 
     P.specifier    = specifier
@@ -322,26 +322,26 @@ end
 local function cast_member_items(node, alias)
     log.trace("enum_cast_member_items:", ast.details(node))
     return cast_items(
-        G.enum.cast.enum_cast.enabled           and enum_cast_snippet (node, 'template <>', true ) or {},
-        G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippet (node, 'template <>', false) or {},
-        G.enum.cast.value_cast.enabled          and value_cast_snippet(node, 'template <>', true ) or {},
-        G.enum.cast.value_cast_no_throw.enabled and value_cast_snippet(node, 'template <>', false) or {})
+        G.enum.cast.enum_cast.enabled           and enum_cast_snippet (node, alias, 'template <>', true ) or {},
+        G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippet (node, alias, 'template <>', false) or {},
+        G.enum.cast.value_cast.enabled          and value_cast_snippet(node, alias, 'template <>', true ) or {},
+        G.enum.cast.value_cast_no_throw.enabled and value_cast_snippet(node, alias, 'template <>', false) or {})
 end
 
 -- Generate from string enumerator free function snippet item for an enum type node.
 local function cast_free_items(node, alias)
     log.trace("enum_cast_free_items:", ast.details(node))
     return cast_items(
-        G.enum.cast.enum_cast.enabled           and enum_cast_snippet (node, 'template <> inline', true ) or {},
-        G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippet (node, 'template <> inline', false) or {},
-        G.enum.cast.value_cast.enabled          and value_cast_snippet(node, 'template <> inline', true ) or {},
-        G.enum.cast.value_cast_no_throw.enabled and value_cast_snippet(node, 'template <> inline', false) or {})
+        G.enum.cast.enum_cast.enabled           and enum_cast_snippet (node, alias, 'template <> inline', true ) or {},
+        G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippet (node, alias, 'template <> inline', false) or {},
+        G.enum.cast.value_cast.enabled          and value_cast_snippet(node, alias, 'template <> inline', true ) or {},
+        G.enum.cast.value_cast_no_throw.enabled and value_cast_snippet(node, alias, 'template <> inline', false) or {})
 end
 
 ---------------------------------------------------------------------------------------------------
 -- Generate output stream shift operator
 ---------------------------------------------------------------------------------------------------
-local function shift_snippet(node, specifier)
+local function shift_snippet(node, alias, specifier)
     log.trace("shift_snippet:", ast.details(node))
 
     P.specifier = specifier
@@ -408,13 +408,13 @@ end
 -- Generate output stream shift member operator completion item for an enum type node.
 local function shift_member_items(node, alias)
     log.trace("shift_member_items:", ast.details(node))
-    return shift_items(shift_snippet(node, 'friend'))
+    return shift_items(shift_snippet(node, alias, 'friend'))
 end
 
 -- Generate output stream shift free operator completion item for an enum type node.
 local function shift_free_items(node, alias)
     log.trace("shift_free_items:", ast.details(node))
-    return shift_items(shift_snippet(node, 'inline'))
+    return shift_items(shift_snippet(node, alias, 'inline'))
 end
 
 ---------------------------------------------------------------------------------------------------

@@ -97,7 +97,7 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Generate serialization snippet for a class type node.
 ---------------------------------------------------------------------------------------------------
-local function save_class_snippet(node, specifier, member)
+local function save_class_snippet(node, alias, specifier, member)
     log.debug("save_class_snippet:", ast.details(node))
 
     P.specifier    = specifier
@@ -200,12 +200,12 @@ end
 -- Generate serialization function snippet items for a class type node.
 local function save_class_member_items(node, alias)
     log.trace("save_class_member_items:", ast.details(node))
-    return save_class_items(save_class_snippet(node, 'template <typename Archive>', true))
+    return save_class_items(save_class_snippet(node, alias, 'template <typename Archive>', true))
 end
 
 local function save_class_free_items(node, alias)
     log.trace("save_class_free_items:", ast.details(node))
-    return save_class_items(save_class_snippet(node, 'template <typename Archive>', false))
+    return save_class_items(save_class_snippet(node, alias, 'template <typename Archive>', false))
 end
 
 local enclosing_node = nil
