@@ -140,13 +140,13 @@ local function shift_items(lines)
 end
 
 -- Generate output stream shift member operator completion item for a class type node.
-local function shift_member_items(node)
+local function shift_member_items(node, alias)
     log.trace("shift_member_items:", ast.details(node))
     return shift_items(shift_snippet(node, 'friend'))
 end
 
 -- Generate output stream shift free operator completion item for a class type node.
-local function shift_free_items(node)
+local function shift_free_items(node, alias)
     log.trace("shift_free_items:", ast.details(node))
     return shift_items(shift_snippet(node, 'inline'))
 end
@@ -155,6 +155,7 @@ local M = {}
 
 local enclosing_node = nil
 local preceding_node = nil
+local typealias_node = nil
 
 ---------------------------------------------------------------------------------------------------
 --- Generator will call this method to get kind of nodes that are of interest to each generator.
@@ -171,6 +172,7 @@ function M.reset()
     log.trace("reset:")
     enclosing_node = nil
     preceding_node = nil
+    typealias_node = nil
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -187,6 +189,7 @@ function M.visit(node, alias, location)
         log.debug("visit:", "Accepted preceding node", ast.details(node))
         preceding_node = node
     end
+    typealias_node = alias
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -206,17 +209,17 @@ function M.generate()
 
     if ast.is_class(preceding_node) then
         if ast.is_class(enclosing_node) then
-            for _,item in ipairs(shift_member_items(preceding_node)) do
+            for _,item in ipairs(shift_member_items(preceding_node, typealias_node)) do
                 table.insert(items, item)
             end
         else
-            for _,item in ipairs(shift_free_items(preceding_node)) do
+            for _,item in ipairs(shift_free_items(preceding_node, typealias_node)) do
                 table.insert(items, item)
             end
         end
     end
     if ast.is_class(enclosing_node) then
-        for _,item in ipairs(shift_member_items(enclosing_node)) do
+        for _,item in ipairs(shift_member_items(enclosing_node, typealias_node)) do
             table.insert(items, item)
         end
     end

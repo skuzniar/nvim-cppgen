@@ -198,18 +198,19 @@ local function save_class_items(lines)
 end
 
 -- Generate serialization function snippet items for a class type node.
-local function save_class_member_items(node)
+local function save_class_member_items(node, alias)
     log.trace("save_class_member_items:", ast.details(node))
     return save_class_items(save_class_snippet(node, 'template <typename Archive>', true))
 end
 
-local function save_class_free_items(node)
+local function save_class_free_items(node, alias)
     log.trace("save_class_free_items:", ast.details(node))
     return save_class_items(save_class_snippet(node, 'template <typename Archive>', false))
 end
 
 local enclosing_node = nil
 local preceding_node = nil
+local typealias_node = nil
 
 local M = {}
 
@@ -225,6 +226,7 @@ end
 function M.reset()
     enclosing_node = nil
     preceding_node = nil
+    typealias_node = nil
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -241,6 +243,7 @@ function M.visit(node, alias, location)
         log.debug("visit:", "Accepted preceding node", ast.details(node))
         preceding_node = node
     end
+    typealias_node = alias
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -264,10 +267,10 @@ function M.generate()
 
     local items = {}
     if ast.is_class(enclosing_node) then
-        add_to(items, save_class_member_items(enclosing_node))
+        add_to(items, save_class_member_items(enclosing_node, typealias_node))
     end
     if ast.is_class(preceding_node) then
-        add_to(items, save_class_free_items(preceding_node))
+        add_to(items, save_class_free_items(preceding_node, typealias_node))
     end
     return items
 end
