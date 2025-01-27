@@ -63,7 +63,9 @@ function M.get_type_definition(client, node, callback)
         if err ~= nil then
             log.error(err)
         else
-            get_type_ast(client, symbols[1], callback)
+            if next(symbols) ~= nil then
+                get_type_ast(client, symbols[1], callback)
+            end
 	    end
 	end)
 end
