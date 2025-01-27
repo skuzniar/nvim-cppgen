@@ -102,7 +102,7 @@ local function save_class_snippet(node, alias, specifier, member)
 
     P.specifier    = specifier
     P.attribute    = G.attribute and ' ' .. G.attribute or ''
-    P.classname    = ast.name(node)
+    P.classname    = alias and ast.name(alias) or ast.name(node)
     P.functionname = G.cereal.class.name
     P.indent       = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 

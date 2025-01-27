@@ -72,7 +72,7 @@ local function shift_snippet(node, alias, specifier)
 
     P.specifier = specifier
     P.attribute = G.attribute and ' ' .. G.attribute or ''
-    P.classname = ast.name(node)
+    P.classname = alias and ast.name(alias) or ast.name(node)
     P.separator = G.class.shift.separator
     P.indent    = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
@@ -162,7 +162,7 @@ local typealias_node = nil
 ---------------------------------------------------------------------------------------------------
 function M.digs()
     log.trace("digs:")
-    return { "CXXRecord", "ClassTemplate" }
+    return { "Record", "CXXRecord", "ClassTemplate" }
 end
 
 ---------------------------------------------------------------------------------------------------

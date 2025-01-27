@@ -41,13 +41,13 @@ local function apply(format)
 end
 
 -- Collect names and values for an enum type node. Labels are fixed, values are calculated.
-local function labels_and_values(node, vf)
+local function labels_and_values(node, alias, vf)
     log.trace("labels_and_values:", ast.details(node))
 
     local lsandvs = {}
     for _,r in ipairs(utl.enum_records(node)) do
         local record = {}
-        record.label = ast.name(node) .. '::' .. r.label
+        record.label = (alias and ast.name(alias) or ast.name(node)) .. '::' .. r.label
         record.value = vf(r.label, r.value)
         table.insert(lsandvs, record)
     end
@@ -78,11 +78,11 @@ local function to_string_snippet(node, alias, specifier)
 
     P.specifier    = specifier
     P.attribute    = G.attribute and ' ' .. G.attribute or ''
-    P.classname    = ast.name(node)
+    P.classname    = alias and ast.name(alias) or ast.name(node)
     P.functionname = G.enum.to_string.name
     P.indent       = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
-    local records = labels_and_values(node, G.enum.to_string.value)
+    local records = labels_and_values(node, alias, G.enum.to_string.value)
     local maxllen, maxvlen = max_lengths(records)
 
     local lines = {}
@@ -157,7 +157,7 @@ local function enum_cast_snippet(node, alias, specifier, throw)
 
     P.specifier    = specifier
     P.attribute    = G.attribute and ' ' .. G.attribute or ''
-    P.classname    = ast.name(node)
+    P.classname    = alias and ast.name(alias) or ast.name(node)
     P.functionname = G.enum.cast.name
     P.indent       = string.rep(' ', vim.lsp.util.get_effective_tabstop())
     P.errortype    = G.enum.cast.enum_cast_no_throw.errortype
@@ -224,7 +224,7 @@ local function value_cast_snippet(node, alias, specifier, throw)
 
     P.specifier    = specifier
     P.attribute    = G.attribute and ' ' .. G.attribute or ''
-    P.classname    = ast.name(node)
+    P.classname    = alias and ast.name(alias) or ast.name(node)
     P.functionname = G.enum.cast.name
     P.indent       = string.rep(' ', vim.lsp.util.get_effective_tabstop())
     P.errortype    = G.enum.cast.value_cast_no_throw.errortype
@@ -346,10 +346,10 @@ local function shift_snippet(node, alias, specifier)
 
     P.specifier = specifier
     P.attribute = G.attribute and ' ' .. G.attribute or ''
-    P.classname = ast.name(node)
+    P.classname = alias and ast.name(alias) or ast.name(node)
     P.indent    = string.rep(' ', vim.lsp.util.get_effective_tabstop())
 
-    local records = labels_and_values(node, G.enum.shift.value)
+    local records = labels_and_values(node, alias, G.enum.shift.value)
     local maxllen, maxvlen = max_lengths(records)
 
     local lines = {}
