@@ -79,7 +79,7 @@ local function visit_relevant_nodes(symbols, line, callback)
 
     if preceding then
         log.debug("Selected preceding node", ast.details(preceding))
-        if preceding.kind == 'TypeAlias' then
+        if ast.is_type_alias(preceding) then
             local alias = relevant_type_alias(preceding)
             if alias and L.lspclient then
                 lsp.get_type_definition(L.lspclient, alias, function(node)

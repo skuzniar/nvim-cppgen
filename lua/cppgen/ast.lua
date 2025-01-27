@@ -112,6 +112,10 @@ function M.phantom(node)
     return node.range ~= nil and node.range['end'].line == node.range['start'].line
 end
 
+function M.is_type_alias(node)
+    return node and node.role == "declaration" and node.kind == "TypeAlias"
+end
+
 function M.is_enum(node)
     return node and node.role == "declaration" and node.kind == "Enum" and not string.find(node.detail, "unnamed ")
 end
