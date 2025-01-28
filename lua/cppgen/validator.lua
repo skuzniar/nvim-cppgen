@@ -10,7 +10,8 @@ local ctx = require('cppgen.context')
 -- Local parameters
 ---------------------------------------------------------------------------------------------------
 local L = {
-    group = "CPPGen",
+    group     = "CPPGen",
+    lspclient = nil,
 }
 
 ---------------------------------------------------------------------------------------------------
@@ -103,36 +104,39 @@ function M.setup(opts)
 end
 
 --- Validate generated code in the buffer
-local function validate(client, bufnr)
+local function validate(bufnr)
 	local params = { textDocument = vim.lsp.util.make_text_document_params() }
     -- Should we clear first?
-    vim.fn.sign_unplace(L.group, { buffer = bufnr })
-	client.request("textDocument/ast", params, function(err, symbols, _)
-        if err ~= nil then
-            log.error(err)
-        else
-            log.info("Received AST data with", (symbols and symbols.children and #symbols.children or 0), "top level nodes")
-            log.trace(symbols)
-            visit(symbols, bufnr)
-        end
-	end)
+    if L.lspclient then
+        vim.fn.sign_unplace(L.group, { buffer = bufnr })
+	    L.lspclient.request("textDocument/ast", params, function(err, symbols, _)
+            if err ~= nil then
+                log.error(err)
+            else
+                log.info("Received AST data with", (symbols and symbols.children and #symbols.children or 0), "top level nodes")
+                log.trace(symbols)
+                visit(symbols, bufnr)
+            end
+	    end)
+    end
 end
 
 --- LSP client attached callback
 function M.attached(client, bufnr)
     log.info("Attached client", client.id, "buffer", bufnr)
-    validate(client, bufnr)
+    L.lspclient = client
+    validate(bufnr)
 end
 
 --- Entering insert mode.
-function M.insert_enter(client, bufnr)
-    log.trace("Entered insert mode client", client.id, "buffer", bufnr)
+function M.insert_enter(bufnr)
+    log.trace("Entered insert mode buffer:", bufnr)
 end
 
 --- Exiting insert mode. Validate new code
-function M.insert_leave(client, bufnr)
-    log.trace("Exited insert mode client", client.id, "buffer", bufnr)
-    validate(client, bufnr)
+function M.insert_leave(bufnr)
+    log.trace("Exited insert mode buffer:", bufnr)
+    validate(bufnr)
 end
 
 return M

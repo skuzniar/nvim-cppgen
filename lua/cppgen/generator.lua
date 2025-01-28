@@ -260,8 +260,8 @@ function M.attached(client, bufnr)
 end
 
 --- Entering insert mode. Reset generators and request AST data. Upon completion visit AST nodes.
-function M.insert_enter(client, bufnr)
-    log.trace("Entered insert mode client", client.id, "buffer", bufnr)
+function M.insert_enter(bufnr)
+    log.trace("Entered insert mode buffer:", bufnr)
 
     for _,g in pairs(G) do
         g.reset()
@@ -269,7 +269,7 @@ function M.insert_enter(client, bufnr)
 
 	local params = { textDocument = vim.lsp.util.make_text_document_params() }
     if L.lspclient then
-        log.trace("requesting ", client.id, "buffer", bufnr)
+        log.trace("requesting buffer:", bufnr)
 	    L.lspclient.request("textDocument/ast", params, function(err, symbols, _)
             if err ~= nil then
                 log.error(err)
@@ -283,8 +283,8 @@ function M.insert_enter(client, bufnr)
 end
 
 --- Exiting insert mode.
-function M.insert_leave(client, bufnr)
-    log.trace("Exited insert mode client", client.id, "buffer", bufnr)
+function M.insert_leave(bufnr)
+    log.trace("Exited insert mode buffer:", bufnr)
 end
 
 --- Info callback

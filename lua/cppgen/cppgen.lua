@@ -29,23 +29,23 @@ function M.attached(client, bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------
---- Callback invoked when we enter insert mode in the buffer attached to a LSP client
+--- Callback invoked when we enter insert mode in the buffer
 ---------------------------------------------------------------------------------------------------
-function M.insert_enter(client, bufnr)
-    log.trace("Entered insert mode client", client.id, "buffer", bufnr)
-	ctx.insert_enter(client, bufnr)
-	gen.insert_enter(client, bufnr)
-	val.insert_enter(client, bufnr)
+function M.insert_enter(bufnr)
+    log.trace("Entered insert mode buffer:", bufnr)
+	ctx.insert_enter(bufnr)
+	gen.insert_enter(bufnr)
+	val.insert_enter(bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------
---- Callback invoked when we leave insert mode in the buffer attached to a LSP client
+--- Callback invoked when we leave insert mode in the buffer
 ---------------------------------------------------------------------------------------------------
-function M.insert_leave(client, bufnr)
-    log.trace("Exited insert mode client", client.id, "buffer", bufnr)
-	ctx.insert_leave(client, bufnr)
-	gen.insert_leave(client, bufnr)
-	val.insert_leave(client, bufnr)
+function M.insert_leave(bufnr)
+    log.trace("Exited insert mode buffer:", bufnr)
+	ctx.insert_leave(bufnr)
+	gen.insert_leave(bufnr)
+	val.insert_leave(bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------

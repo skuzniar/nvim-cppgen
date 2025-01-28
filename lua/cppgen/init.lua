@@ -25,14 +25,14 @@ local function attach(client, bufnr)
 
 	vim.api.nvim_create_autocmd({ "InsertEnter" }, {
 		callback = function(args)
-			cgn.insert_enter(client, bufnr)
+			cgn.insert_enter(bufnr)
 		end,
 		group  = group,
 		buffer = bufnr
 	})
 	vim.api.nvim_create_autocmd({ "InsertLeave" }, {
 		callback = function(args)
-			cgn.insert_leave(client, bufnr)
+			cgn.insert_leave(bufnr)
 		end,
 		group  = group,
 		buffer = bufnr
