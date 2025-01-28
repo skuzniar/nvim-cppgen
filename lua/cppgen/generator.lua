@@ -31,31 +31,20 @@ local G = {
 --- Exported functions
 local M = {}
 
---- Given a type alias node, figure out if it refers to a kind of node that the generators can handle
-local function relevant_type_alias(node)
-    log.trace("relevant_type_alias:", ast.details(node))
-
-    local relevant = nil
-    ast.dfs(node,
-        function(_)
-            return not relevant
-        end,
-        function(n)
-            if n.role == 'type' and L.digs[n.kind] then
-                relevant = n
-            end
-        end
-        )
-    return relevant
+--- Given a node, possibly a type alias, check if at least one of the generators finds it relevant
+local function is_relevant(node)
+    log.trace("is_relevant:", ast.details(node))
+    local aliastype = ast.alias_type(node)
+    if aliastype then
+        return L.digs[aliastype.kind], aliastype
+    end
+    return L.digs[node.kind], nil
 end
 
---- Scan current AST, find immediately preceding and closest enclosing nodes and invoke callback on them.
-local function visit_relevant_nodes(symbols, line, callback)
-    log.trace("Looking for relevant nodes at line", line)
-
-    local preceding = nil
-    local enclosing = nil
-
+--- Scan current AST, find immediately preceding and closest enclosing nodes.
+local function find_relevant_nodes(symbols, line)
+    log.trace("find_relevant_nodes at line", line)
+    local preceding, enclosing, aliastype = nil, nil, nil
     ast.dfs(symbols,
         function(node)
             log.debug("Looking at node", ast.details(node), "phantom=", ast.phantom(node), "encloses=", ast.encloses(node, line))
@@ -63,30 +52,35 @@ local function visit_relevant_nodes(symbols, line, callback)
         end,
         function(node)
             if ast.encloses(node, line) and not ast.overlay(enclosing, node) then
-                enclosing = node
-                --log.debug("Found enclosing node", ast.details(node))
-                log.trace(node)
+                local r, a = is_relevant(node)
+                if r then
+                    enclosing, aliastype = node, a
+                end
             end
         end,
         function(node)
             if ast.precedes(node, line) and not ast.overlay(preceding, node) then
-                preceding = node
-                --log.debug("Found preceding node", ast.details(node))
-                log.trace(node)
+                local r, a = is_relevant(node)
+                if r then
+                    preceding, aliastype = node, a
+                end
             end
         end
     )
+    return preceding, enclosing, aliastype
+end
 
+--- Find immediately preceding and closest enclosing nodes and invoke callback on them.
+local function visit_relevant_nodes(symbols, line, callback)
+    log.trace("Looking for relevant nodes at line", line)
+    local preceding, enclosing, aliastype = find_relevant_nodes(symbols, line)
     if preceding then
         log.debug("Selected preceding node", ast.details(preceding))
-        if ast.is_type_alias(preceding) then
-            local alias = relevant_type_alias(preceding)
-            if alias and L.lspclient then
-                lsp.get_type_definition(L.lspclient, alias, function(node)
-                    log.debug("Resolved type alias:", ast.details(preceding), "using:", ast.details(node), " line:", line)
-                    callback(node, preceding, ast.Precedes)
-                end)
-            end
+        if aliastype and L.lspclient then
+            lsp.get_type_definition(L.lspclient, aliastype, function(node)
+                log.debug("Resolved type alias:", ast.details(preceding), "using:", ast.details(node), " line:", line)
+                callback(node, preceding, ast.Precedes)
+            end)
         else
             callback(preceding, nil, ast.Precedes)
         end

@@ -128,4 +128,22 @@ function M.is_class_template(node)
     return node and node.role == "declaration" and node.kind == "ClassTemplate"
 end
 
+--- If a given node it a type alias node, get the underlying (deepest level?) type part
+function M.alias_type(node)
+    local type = nil
+    if M.is_type_alias(node) then
+        M.dfs(node,
+            function(_)
+                return true
+            end,
+            function(n)
+                if n.role == 'type' then
+                    type = n
+                end
+            end
+        )
+    end
+    return type
+end
+
 return M
