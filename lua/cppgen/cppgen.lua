@@ -1,12 +1,9 @@
 local log = require('cppgen.log')
-local ctx = require('cppgen.context')
 local gen = require('cppgen.generator')
 local val = require('cppgen.validator')
 
 ---------------------------------------------------------------------------------------------------
--- Code generation module. Forwards events to the dependent modules:
--- 1. Context module
--- 2. Code completion source
+-- Code generation module. Forwards events to the code completion module
 ---------------------------------------------------------------------------------------------------
 local M = {}
 
@@ -23,7 +20,6 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.attached(client, bufnr)
     log.trace("Attached client", client.id, "buffer", bufnr)
-	ctx.attached(client, bufnr)
 	gen.attached(client, bufnr)
 	val.attached(client, bufnr)
 end
@@ -33,7 +29,6 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.insert_enter(bufnr)
     log.trace("Entered insert mode buffer:", bufnr)
-	ctx.insert_enter(bufnr)
 	gen.insert_enter(bufnr)
 	val.insert_enter(bufnr)
 end
@@ -43,7 +38,6 @@ end
 ---------------------------------------------------------------------------------------------------
 function M.insert_leave(bufnr)
     log.trace("Exited insert mode buffer:", bufnr)
-	ctx.insert_leave(bufnr)
 	gen.insert_leave(bufnr)
 	val.insert_leave(bufnr)
 end
