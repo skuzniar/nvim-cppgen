@@ -91,46 +91,43 @@ local function visit_relevant_nodes(symbols, line, callback)
     end
 end
 
---- Visit AST nodes
-local function visit(symbols, bufnr)
-    log.trace("visit:", "buffer", bufnr)
-
-    -- We may have left insert mode by the time AST arrived
-    if L.line then
-        visit_relevant_nodes(symbols, L.line,
-            function(node, alias, location)
-                for _,g in pairs(G) do
-                    g.visit(node, alias, location)
-                end
-            end
-        )
-    end
-end
-
 --- Return true if th code can be generated in the current context - buffer and cursor position
-local function available(bufnr)
-    log.trace("available:", "buffer", bufnr)
+local function available()
+    log.trace("available:")
     local result = false
     for _,g in pairs(G) do
         result = result or g.available()
     end
-    log.debug("Can" .. (result and " " or " not ") .. "generate code in buffer", bufnr)
+    log.debug("Can" .. (result and " " or " not ") .. "generate code")
     return result
 end
 
---- Generate code completion items appropriate for the current context
-local function generate(bufnr, line)
-    local total = {}
-    if line then
-        log.info("Generating code in buffer", bufnr)
-        for _,g in pairs(G) do
-            local items = g.generate();
-            for _,i in ipairs(items) do
-                table.insert(total, i)
+---------------------------------------------------------------------------------------------------
+--- Visit AST nodes
+---------------------------------------------------------------------------------------------------
+function M.visit(symbols, line)
+    log.trace("visit line:", line)
+    visit_relevant_nodes(symbols, line,
+        function(node, alias, location)
+            for _,g in pairs(G) do
+                g.visit(node, alias, location)
             end
         end
-        log.info("Collected", #total, "completion items")
+    )
+end
+
+---------------------------------------------------------------------------------------------------
+--- Generate code completion items appropriate for the current context
+---------------------------------------------------------------------------------------------------
+function M.generate()
+    local total = {}
+    for _,g in pairs(G) do
+        local items = g.generate();
+        for _,i in ipairs(items) do
+            table.insert(total, i)
+        end
     end
+    log.info("Collected", #total, "completion items")
     return total
 end
 
@@ -149,7 +146,7 @@ end
 ---------------------------------------------------------------------------------------------------
 function M:is_available()
     log.trace('is_available')
-    return available(vim.api.nvim_get_current_buf())
+    return available()
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -197,7 +194,7 @@ end
 ---------------------------------------------------------------------------------------------------
 function M:complete(params, callback)
     log.trace('complete:', params)
-    local items = generate(params.context.bufnr, L.line)
+    local items = M.generate()
     if items then
         callback(items)
     end
@@ -268,14 +265,17 @@ function M.insert_enter(bufnr)
 
 	local params = { textDocument = vim.lsp.util.make_text_document_params() }
     if L.lspclient then
-        log.trace("requesting buffer:", bufnr)
+        log.trace("Requesting AST for buffer:", bufnr)
 	    L.lspclient.request("textDocument/ast", params, function(err, symbols, _)
             if err ~= nil then
                 log.error(err)
             else
                 log.info("Received AST data with", (symbols and symbols.children and #symbols.children or 0), "top level nodes")
                 log.trace(symbols)
-                visit(symbols, bufnr)
+                -- We may have left insert mode by the time AST arrives
+                if L.line then
+                    M.visit(symbols, L.line)
+		        end
 		    end
 	    end)
     end
