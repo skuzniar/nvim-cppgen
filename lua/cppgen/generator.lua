@@ -14,7 +14,7 @@ local L = {
     disclaimer = '',
     lspclient  = nil,
     digs       = {},
-    line       = {}
+    line       = nil
 }
 
 ---------------------------------------------------------------------------------------------------
@@ -96,8 +96,8 @@ local function visit(symbols, bufnr)
     log.trace("visit:", "buffer", bufnr)
 
     -- We may have left insert mode by the time AST arrived
-    if L.line[bufnr] then
-        visit_relevant_nodes(symbols, L.line[bufnr] - 1,
+    if L.line then
+        visit_relevant_nodes(symbols, L.line,
             function(node, alias, location)
                 for _,g in pairs(G) do
                     g.visit(node, alias, location)
@@ -119,10 +119,10 @@ local function available(bufnr)
 end
 
 --- Generate code completion items appropriate for the current context
-local function generate(bufnr)
-    if L.line[bufnr] then
+local function generate(bufnr, line)
+    local total = {}
+    if line then
         log.info("Generating code in buffer", bufnr)
-        local total = {}
         for _,g in pairs(G) do
             local items = g.generate();
             for _,i in ipairs(items) do
@@ -130,8 +130,8 @@ local function generate(bufnr)
             end
         end
         log.info("Collected", #total, "completion items")
-        return total
     end
+    return total
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -197,7 +197,7 @@ end
 ---------------------------------------------------------------------------------------------------
 function M:complete(params, callback)
     log.trace('complete:', params)
-    local items = generate(params.context.bufnr)
+    local items = generate(params.context.bufnr, L.line)
     if items then
         callback(items)
     end
@@ -264,7 +264,7 @@ function M.insert_enter(bufnr)
         g.reset()
     end
 
-    L.line[bufnr] = vim.api.nvim_win_get_cursor(0)[1]
+    L.line = vim.api.nvim_win_get_cursor(0)[1] - 1
 
 	local params = { textDocument = vim.lsp.util.make_text_document_params() }
     if L.lspclient then
@@ -284,7 +284,7 @@ end
 --- Exiting insert mode.
 function M.insert_leave(bufnr)
     log.trace("Exited insert mode buffer:", bufnr)
-    L.line[bufnr] = nil
+    L.line = nil
 end
 
 --- Info callback
