@@ -52,7 +52,6 @@ end
 --- Scan current AST and invoke callback on nodes we think may be interesting
 local function visit_relevant_nodes(symbols, bufnr, callback)
     log.trace("Looking for relevant nodes")
-    local found_generated_code = false
     ast.dfs(symbols,
         function(node)
             log.trace("Looking at node", ast.details(node))
@@ -62,18 +61,14 @@ local function visit_relevant_nodes(symbols, bufnr, callback)
             if has_been_generated(node, bufnr) then
                 local span = ast.span(node)
                 if span then
+                    gen.visit(symbols, span.first)
+                    gen.generate()
                     vim.fn.sign_place(0, L.group, 'CPPGenSignOK', bufnr, { lnum = span.first + 1, priority = 10 })
-                    log.debug("================== Triggering code geneation span:", span)
-                    found_generated_code = true
                 end
                 callback(node)
             end
         end
     )
-    if found_generated_code then
-        log.debug("================== Triggering code geneation")
-       gen.insert_enter(bufnr)
-    end
 end
 
 --- Visit AST nodes

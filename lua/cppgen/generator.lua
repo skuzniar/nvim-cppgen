@@ -47,7 +47,7 @@ local function find_relevant_nodes(symbols, line)
     local preceding, enclosing, aliastype = nil, nil, nil
     ast.dfs(symbols,
         function(node)
-            log.debug("Looking at node", ast.details(node), "phantom=", ast.phantom(node), "encloses=", ast.encloses(node, line))
+            log.trace("Looking at node", ast.details(node), "phantom=", ast.phantom(node), "encloses=", ast.encloses(node, line))
             return ast.encloses(node, line)
         end,
         function(node)
@@ -122,8 +122,7 @@ end
 function M.generate()
     local total = {}
     for _,g in pairs(G) do
-        local items = g.generate();
-        for _,i in ipairs(items) do
+        for _,i in ipairs(g.generate()) do
             table.insert(total, i)
         end
     end
