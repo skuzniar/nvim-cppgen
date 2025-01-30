@@ -43,6 +43,15 @@ function M.insert_leave(bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------
+--- Callback invoked when we wrote the buffer
+---------------------------------------------------------------------------------------------------
+function M.after_write(bufnr)
+    log.trace("Wrote buffer:", bufnr)
+	gen.after_write(bufnr)
+	val.after_write(bufnr)
+end
+
+---------------------------------------------------------------------------------------------------
 --- Code generator is a source for the completion engine
 ---------------------------------------------------------------------------------------------------
 function M.source()

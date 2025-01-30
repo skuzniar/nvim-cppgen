@@ -98,7 +98,7 @@ local function available()
     for _,g in pairs(G) do
         result = result or g.available()
     end
-    log.debug("Can" .. (result and " " or " not ") .. "generate code")
+    log.trace("Can" .. (result and " " or " not ") .. "generate code")
     return result
 end
 
@@ -284,6 +284,11 @@ end
 function M.insert_leave(bufnr)
     log.trace("Exited insert mode buffer:", bufnr)
     L.line = nil
+end
+
+--- Wrote buffer
+function M.after_write(bufnr)
+    log.trace("Wrote buffer:", bufnr)
 end
 
 --- Info callback

@@ -37,6 +37,13 @@ local function attach(client, bufnr)
 		group  = group,
 		buffer = bufnr
 	})
+	vim.api.nvim_create_autocmd({ "BufWritePost" }, {
+		callback = function(args)
+			cgn.after_write(bufnr)
+		end,
+		group  = group,
+		buffer = bufnr
+	})
 
     -- Add our source to cmp
     if not csrcid then
