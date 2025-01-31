@@ -57,6 +57,11 @@ function M.setup(opts)
     -- Combine default options with user options
     local options = opt.merge(opt.default, opts)
 
+    -- Presence of attributes disables the disclaimer
+    if options.attribute then
+        options.disclaimer = ''
+    end
+
     log.new(options.log, true)
 
     cgn.setup(options)
