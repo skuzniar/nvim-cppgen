@@ -11,7 +11,6 @@ local lsp = require('cppgen.lsp')
 -- Local parameters
 ---------------------------------------------------------------------------------------------------
 local L = {
-    disclaimer = '',
     lspclient  = nil,
     digs       = {},
     line       = nil
@@ -204,9 +203,6 @@ end
 ---------------------------------------------------------------------------------------------------
 function M:resolve(completion_item, callback)
     log.trace('resolve:', completion_item)
-    if L.disclaimer and string.len(L.disclaimer) > 0 then
-        completion_item.insertText = L.disclaimer .. '\n' .. completion_item.insertText
-    end
     callback(completion_item)
 end
 
@@ -230,8 +226,6 @@ end
 
 --- Initialization callback
 function M.setup(opts)
-    L.disclaimer = opts.disclaimer or ''
-
     for _,g in pairs(G) do
         g.setup(opts)
         -- Collect kind of nodes the generators can handle

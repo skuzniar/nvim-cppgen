@@ -80,10 +80,7 @@ Some aspects of code generation can be customized using options. Here are the de
         truncate = true
     },
 
-    -- Disclaimer comment line placed before the generated code. Set to empty string to disable.
-    disclaimer = '// Auto-generated using cppgen',
-
-    -- Generated code can be decorated using an attribute. Set to empty string to disable. Will disable disclaimer.
+    -- Generated code can be decorated using an attribute. Set to empty string to disable.
     attribute = '[[cppgen::auto]]',
 
     -- Add clang-format on/off guards around parts of generated code.
