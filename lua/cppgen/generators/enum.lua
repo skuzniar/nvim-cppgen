@@ -117,23 +117,9 @@ end
 local function to_string_items(lines)
     return
     {
-        {
-            label            = G.enum.to_string.name,
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = table.concat(lines, '\n'),
-            documentation    = table.concat(lines, '\n')
-        },
+        { trigger = G.enum.to_string.name, lines = lines },
         G.enum.to_string.trigger ~= G.enum.to_string.name and
-        {
-            label            = G.enum.to_string.trigger,
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = table.concat(lines, '\n'),
-            documentation    = table.concat(lines, '\n')
-        } or nil
+        { trigger = G.enum.to_string.trigger, lines = lines } or nil
     }
 end
 
@@ -289,32 +275,18 @@ end
 
 -- Combine multiple completion items.
 local function cast_items(...)
-    local lines = ''
+    local lines = {}
     for _,t in ipairs({...}) do
-        if next(t) ~= nil then
-            lines = lines .. (lines == '' and '' or '\n\n') .. table.concat(t, '\n')
+        for _, i in ipairs(t) do
+            table.insert(lines, i)
         end
     end
 
-    return lines == '' and {} or
+    return next(lines) == nil and {} or
     {
-        {
-            label            = G.enum.cast.name,
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = lines,
-            documentation    = lines,
-        },
+        { trigger = G.enum.cast.name, lines = lines },
         G.enum.cast.trigger ~= G.enum.cast.name and
-        {
-            label            = G.enum.cast.trigger,
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = lines,
-            documentation    = lines,
-        } or nil
+        { trigger = G.enum.cast.trigger, lines = lines } or nil
     }
 end
 
@@ -386,22 +358,8 @@ end
 local function shift_items(lines)
     return
     {
-        {
-            label            = G.enum.shift.trigger,
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = table.concat(lines, '\n'),
-            documentation    = table.concat(lines, '\n')
-        },
-        {
-            label            = string.match(lines[1], "^([%w]+)"),
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = table.concat(lines, '\n'),
-            documentation    = table.concat(lines, '\n')
-        }
+        { trigger = G.enum.shift.trigger, lines = lines },
+        { trigger = string.match(lines[1], "^([%w]+)"), lines = lines }
     }
 end
 

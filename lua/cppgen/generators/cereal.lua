@@ -177,23 +177,9 @@ end
 local function save_class_items(lines)
     return
     {
-        {
-            label            = G.cereal.class.name,
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = table.concat(lines, '\n'),
-            documentation    = table.concat(lines, '\n')
-        },
+        { trigger = G.cereal.class.name, lines = lines },
         G.cereal.class.trigger ~= G.cereal.class.name and
-        {
-            label            = G.cereal.class.trigger,
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = table.concat(lines, '\n'),
-            documentation    = table.concat(lines, '\n')
-        } or nil
+        { trigger = G.cereal.class.trigger, lines = lines } or nil
     }
 end
 

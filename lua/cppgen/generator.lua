@@ -2,6 +2,8 @@ local log = require('cppgen.log')
 local ast = require('cppgen.ast')
 local lsp = require('cppgen.lsp')
 
+local cmp = require('cmp')
+
 ---------------------------------------------------------------------------------------------------
 -- Completion code snippet generator. Implements code completion source interface. Uses a
 -- collection of specilized generators to produce code snippets.
@@ -121,8 +123,17 @@ end
 function M.generate()
     local total = {}
     for _,g in pairs(G) do
-        for _,i in ipairs(g.generate()) do
-            table.insert(total, i)
+        for _,s in ipairs(g.generate()) do
+            table.insert(total,
+                -- Completion snippet
+                {
+                    label            = s.trigger,
+                    kind             = cmp.lsp.CompletionItemKind.Snippet,
+                    insertTextMode   = 2,
+                    insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
+                    insertText       = table.concat(s.lines, '\n'),
+                    documentation    = table.concat(s.lines, '\n')
+                })
         end
     end
     log.info("Collected", #total, "completion items")

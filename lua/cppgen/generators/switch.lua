@@ -106,16 +106,7 @@ end
 -- Generate mock case statements completion item for an enum type node.
 local function case_enum_item(node)
     log.trace("case_enum_item:", ast.details(node))
-    local lines = case_enum_snippet(node)
-    return
-    {
-        label            = 'case',
-        kind             = cmp.lsp.CompletionItemKind.Snippet,
-        insertTextMode   = 2,
-        insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-        insertText       = table.concat(lines, '\n'),
-        documentation    = table.concat(lines, '\n')
-    }
+    return { trigger = 'case', lines = case_enum_snippet(node) }
 end
 
 local function is_switch(node)

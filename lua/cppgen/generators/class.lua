@@ -120,22 +120,8 @@ end
 local function shift_items(lines)
     return
     {
-        {
-            label            = G.class.shift.trigger,
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = table.concat(lines, '\n'),
-            documentation    = table.concat(lines, '\n')
-        },
-        {
-            label            = string.match(lines[1], "^([%w]+)"),
-            kind             = cmp.lsp.CompletionItemKind.Snippet,
-            insertTextMode   = 2,
-            insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
-            insertText       = table.concat(lines, '\n'),
-            documentation    = table.concat(lines, '\n')
-        }
+        { trigger = G.class.shift.trigger, lines = lines },
+        { trigger = string.match(lines[1], "^([%w]+)"), lines = lines }
     }
 end
 
