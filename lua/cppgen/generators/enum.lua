@@ -185,7 +185,6 @@ local function enum_cast_snippet(node, alias, specifier, throw)
     table.insert(lines, '}')
 
     -- Add a forwarding function that takes char pointer and forwards it as string view
-    table.insert(lines, '')
     if throw then
         table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(const char* e)'))
         table.insert(lines, apply('{'))
