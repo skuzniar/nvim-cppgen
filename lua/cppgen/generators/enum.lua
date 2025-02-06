@@ -272,21 +272,18 @@ local function value_cast_snippet(node, alias, specifier, throw)
     return lines
 end
 
--- Combine multiple completion items.
+-- Collect non-empty completion items.
 local function cast_items(...)
-    local lines = {}
-    for _,t in ipairs({...}) do
-        for _, i in ipairs(t) do
-            table.insert(lines, i)
+    local items = {}
+    for _,lines in ipairs({...}) do
+        if next(lines) ~= nil then
+            table.insert(items, { trigger = G.enum.cast.name, lines = lines })
+            if G.enum.cast.trigger ~= G.enum.cast.name then
+                table.insert(items, { trigger = G.enum.cast.trigger, lines = lines })
+            end
         end
     end
-
-    return next(lines) == nil and {} or
-    {
-        { trigger = G.enum.cast.name, lines = lines },
-        G.enum.cast.trigger ~= G.enum.cast.name and
-        { trigger = G.enum.cast.trigger, lines = lines } or nil
-    }
+    return items
 end
 
 -- Generate from string enumerator member function snippet item for an enum type node.
