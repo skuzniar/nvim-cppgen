@@ -118,12 +118,12 @@ function M.visit(symbols, line)
 end
 
 ---------------------------------------------------------------------------------------------------
---- Generate code completion items appropriate for the current context
+--- Generate code completion items. When called during validation strict argument is true.
 ---------------------------------------------------------------------------------------------------
-function M.generate()
+function M.generate(strict)
     local total = {}
     for _,g in pairs(G) do
-        for _,s in ipairs(g.generate()) do
+        for _,s in ipairs(g.generate(strict)) do
             table.insert(total,
                 -- Completion snippet
                 {
@@ -203,7 +203,7 @@ end
 ---------------------------------------------------------------------------------------------------
 function M:complete(params, callback)
     log.trace('complete:', params)
-    local items = M.generate()
+    local items = M.generate(false)
     if items then
         callback(items)
     end

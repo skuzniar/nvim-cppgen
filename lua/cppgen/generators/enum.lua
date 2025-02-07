@@ -136,10 +136,10 @@ local function to_string_free_items(node, alias)
 end
 
 ---------------------------------------------------------------------------------------------------
--- Generate enumerator cast. Converts from string matching on enumerator name.
+-- Generate enumerator cast snipets. Converts from string matching on enumerator name.
 ---------------------------------------------------------------------------------------------------
-local function enum_cast_snippet(node, alias, specifier, throw)
-    log.trace("enum_cast_snippet:", ast.details(node))
+local function enum_cast_snippets(node, alias, specifier, throw)
+    log.trace("enum_cast_snippets:", ast.details(node))
 
     P.specifier    = specifier
     P.attribute    = G.attribute and ' ' .. G.attribute or ''
@@ -152,60 +152,77 @@ local function enum_cast_snippet(node, alias, specifier, throw)
 
     local maxllen, _ = max_lengths(utl.enum_records(node))
 
-    local lines = {}
-
+    local primary = {}
     if throw then
-        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(std::string_view e)'))
+        table.insert(primary, apply('<specifier><attribute> <classname> <functionname>(std::string_view e)'))
     else
-        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(std::string_view e, <errortype>& error) noexcept'))
+        table.insert(primary, apply('<specifier><attribute> <classname> <functionname>(std::string_view e, <errortype>& error) noexcept'))
     end
-    table.insert(lines, '{')
+    table.insert(primary, '{')
     if G.keepindent then
-        table.insert(lines, apply('<indent>// clang-format off'))
+        table.insert(primary, apply('<indent>// clang-format off'))
     end
     ast.visit_children(node,
         function(n)
             if n.kind == "EnumConstant" then
                 P.fieldname = ast.name(n)
                 P.valuepad  = string.rep(' ', maxllen - string.len(P.fieldname))
-                table.insert(lines, apply('<indent>if (e == "<fieldname>")<valuepad> return <classname>::<fieldname>;'))
+                table.insert(primary, apply('<indent>if (e == "<fieldname>")<valuepad> return <classname>::<fieldname>;'))
             end
             return true
         end
     )
     if G.keepindent then
-        table.insert(lines, apply('<indent>// clang-format on'))
+        table.insert(primary, apply('<indent>// clang-format on'))
     end
     if throw then
-        table.insert(lines, apply('<indent>throw <exception>;'))
+        table.insert(primary, apply('<indent>throw <exception>;'))
     else
-        table.insert(lines, apply('<indent>error = <error>;'))
-        table.insert(lines, apply('<indent>return <classname>{};'))
+        table.insert(primary, apply('<indent>error = <error>;'))
+        table.insert(primary, apply('<indent>return <classname>{};'))
     end
-    table.insert(lines, '}')
+    table.insert(primary, '}')
 
-    -- Add a forwarding function that takes char pointer and forwards it as string view
+    -- Add a forwarding functions that take char pointer or string and forwards it as string view
+    local cptrfwd = {}
+    local strnfwd = {}
     if throw then
-        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(const char* e)'))
-        table.insert(lines, apply('{'))
-        table.insert(lines, apply('<indent>return <functionname><<classname>>(std::string_view(e));'))
-        table.insert(lines, apply('}'))
+        table.insert(cptrfwd, apply('<specifier><attribute> <classname> <functionname>(const char* e)'))
+        table.insert(cptrfwd, apply('{'))
+        table.insert(cptrfwd, apply('<indent>return <functionname><<classname>>(std::string_view(e));'))
+        table.insert(cptrfwd, apply('}'))
+
+        table.insert(strnfwd, apply('<specifier><attribute> <classname> <functionname>(const std::string& e)'))
+        table.insert(strnfwd, apply('{'))
+        table.insert(strnfwd, apply('<indent>return <functionname><<classname>>(std::string_view(e));'))
+        table.insert(strnfwd, apply('}'))
     else
-        table.insert(lines, apply('<specifier><attribute> <classname> <functionname>(const char* e, <errortype>& error) noexcept'))
-        table.insert(lines, apply('{'))
-        table.insert(lines, apply('<indent>return <functionname><<classname>>(std::string_view(e), error);'))
-        table.insert(lines, apply('}'))
+        table.insert(cptrfwd, apply('<specifier><attribute> <classname> <functionname>(const char* e, <errortype>& error) noexcept'))
+        table.insert(cptrfwd, apply('{'))
+        table.insert(cptrfwd, apply('<indent>return <functionname><<classname>>(std::string_view(e), error);'))
+        table.insert(cptrfwd, apply('}'))
+
+        table.insert(strnfwd, apply('<specifier><attribute> <classname> <functionname>(const std::string& e, <errortype>& error) noexcept'))
+        table.insert(strnfwd, apply('{'))
+        table.insert(strnfwd, apply('<indent>return <functionname><<classname>>(std::string_view(e), error);'))
+        table.insert(strnfwd, apply('}'))
     end
 
-    for _,l in ipairs(lines) do log.debug(l) end
-    return lines
+    for _,l in ipairs(primary) do log.debug(l) end
+    for _,l in ipairs(cptrfwd) do log.debug(l) end
+    for _,l in ipairs(strnfwd) do log.debug(l) end
+
+    if P.strict then
+        return { primary, cptrfwd, strnfwd }
+    end
+    return { utl.flatten(primary, cptrfwd, strnfwd) }
 end
 
 ---------------------------------------------------------------------------------------------------
--- Generate enumerator cast. Converts from integer matching on enumerator value.
+-- Generate enumerator cast snipets. Converts from integer matching on enumerator value.
 ---------------------------------------------------------------------------------------------------
-local function value_cast_snippet(node, alias, specifier, throw)
-    log.trace("value_cast_snippet:", ast.details(node))
+local function value_cast_snippets(node, alias, specifier, throw)
+    log.trace("value_cast_snippets:", ast.details(node))
 
     P.specifier    = specifier
     P.attribute    = G.attribute and ' ' .. G.attribute or ''
@@ -269,41 +286,47 @@ local function value_cast_snippet(node, alias, specifier, throw)
     table.insert(lines, '}')
 
     for _,l in ipairs(lines) do log.debug(l) end
-    return lines
+    return { lines }
 end
 
--- Collect non-empty completion items.
+---------------------------------------------------------------------------------------------------
+-- Collect non-empty completion items. Note that we expect nested table here.
+---------------------------------------------------------------------------------------------------
 local function cast_items(...)
     local items = {}
-    for _,lines in ipairs({...}) do
-        if next(lines) ~= nil then
-            table.insert(items, { trigger = G.enum.cast.name, lines = lines })
+    for _,t in ipairs({...}) do
+        for _,l in ipairs(t) do
+            table.insert(items, { trigger = G.enum.cast.name, lines = l })
             if G.enum.cast.trigger ~= G.enum.cast.name then
-                table.insert(items, { trigger = G.enum.cast.trigger, lines = lines })
+                table.insert(items, { trigger = G.enum.cast.trigger, lines = l })
             end
         end
     end
     return items
 end
 
--- Generate from string enumerator member function snippet item for an enum type node.
+---------------------------------------------------------------------------------------------------
+-- Generate from string enumerator member function snippet items for an enum type node.
+---------------------------------------------------------------------------------------------------
 local function cast_member_items(node, alias)
     log.trace("enum_cast_member_items:", ast.details(node))
     return cast_items(
-        G.enum.cast.enum_cast.enabled           and enum_cast_snippet (node, alias, 'template <>', true ) or {},
-        G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippet (node, alias, 'template <>', false) or {},
-        G.enum.cast.value_cast.enabled          and value_cast_snippet(node, alias, 'template <>', true ) or {},
-        G.enum.cast.value_cast_no_throw.enabled and value_cast_snippet(node, alias, 'template <>', false) or {})
+        G.enum.cast.enum_cast.enabled           and enum_cast_snippets (node, alias, 'template <>', true ) or {},
+        G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippets (node, alias, 'template <>', false) or {},
+        G.enum.cast.value_cast.enabled          and value_cast_snippets(node, alias, 'template <>', true ) or {},
+        G.enum.cast.value_cast_no_throw.enabled and value_cast_snippets(node, alias, 'template <>', false) or {})
 end
 
--- Generate from string enumerator free function snippet item for an enum type node.
+---------------------------------------------------------------------------------------------------
+-- Generate from string enumerator free function snippet items for an enum type node.
+---------------------------------------------------------------------------------------------------
 local function cast_free_items(node, alias)
     log.trace("enum_cast_free_items:", ast.details(node))
     return cast_items(
-        G.enum.cast.enum_cast.enabled           and enum_cast_snippet (node, alias, 'template <> inline', true ) or {},
-        G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippet (node, alias, 'template <> inline', false) or {},
-        G.enum.cast.value_cast.enabled          and value_cast_snippet(node, alias, 'template <> inline', true ) or {},
-        G.enum.cast.value_cast_no_throw.enabled and value_cast_snippet(node, alias, 'template <> inline', false) or {})
+        G.enum.cast.enum_cast.enabled           and enum_cast_snippets (node, alias, 'template <> inline', true ) or {},
+        G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippets (node, alias, 'template <> inline', false) or {},
+        G.enum.cast.value_cast.enabled          and value_cast_snippets(node, alias, 'template <> inline', true ) or {},
+        G.enum.cast.value_cast_no_throw.enabled and value_cast_snippets(node, alias, 'template <> inline', false) or {})
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -431,11 +454,12 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Generate from string functions for an enum nodes.
 ---------------------------------------------------------------------------------------------------
-function M.generate()
+function M.generate(strict)
     log.trace("generate:", ast.details(preceding_node), ast.details(enclosing_node))
 
     local items = {}
 
+    P.strict = strict
     if ast.is_enum(preceding_node) then
         if ast.is_class(enclosing_node) then
             add_to(items, to_string_member_items(preceding_node, typealias_node))

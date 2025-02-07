@@ -63,4 +63,17 @@ function M.camelize(s)
     return (string.gsub(s, '%W*(%w+)', capitalize))
 end
 
+---------------------------------------------------------------------------------------------------
+-- Convert table of tables of items into a table of items.
+---------------------------------------------------------------------------------------------------
+function M.flatten(...)
+    local items = {}
+    for _,t in ipairs({...}) do
+        for _,i in ipairs(t) do
+            table.insert(items, i)
+        end
+    end
+    return items
+end
+
 return M

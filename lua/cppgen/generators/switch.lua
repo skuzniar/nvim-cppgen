@@ -245,7 +245,7 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Generate from string functions for an enum nodes.
 ---------------------------------------------------------------------------------------------------
-function M.generate()
+function M.generate(strict)
     log.trace("generate:", ast.details(condition_definition_node))
 
     local items = {}

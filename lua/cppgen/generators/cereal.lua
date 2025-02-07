@@ -248,7 +248,7 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Generate completion items
 ---------------------------------------------------------------------------------------------------
-function M.generate()
+function M.generate(strict)
     log.trace("generate:", ast.details(preceding_node), ast.details(enclosing_node))
 
     local items = {}

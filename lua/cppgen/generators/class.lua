@@ -188,7 +188,7 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Generate plain output stream shift operator for a class and enum nodes.
 ---------------------------------------------------------------------------------------------------
-function M.generate()
+function M.generate(strict)
     log.trace("generate:", ast.details(preceding_node), ast.details(enclosing_node))
 
     local items = {}
