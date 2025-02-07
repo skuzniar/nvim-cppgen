@@ -64,13 +64,28 @@ function M.camelize(s)
 end
 
 ---------------------------------------------------------------------------------------------------
--- Convert table of tables of items into a table of items.
+-- Convert multiple tables of items into a single table of items.
 ---------------------------------------------------------------------------------------------------
-function M.flatten(...)
+function M.combine(...)
     local items = {}
     for _,t in ipairs({...}) do
         for _,i in ipairs(t) do
             table.insert(items, i)
+        end
+    end
+    return items
+end
+
+---------------------------------------------------------------------------------------------------
+-- Convert multiple tables of tables of items into a single table of items.
+---------------------------------------------------------------------------------------------------
+function M.flatten(...)
+    local items = {}
+    for _,tt in ipairs({...}) do
+        for _,t in ipairs(tt) do
+            for _,i in ipairs(t) do
+                table.insert(items, i)
+            end
         end
     end
     return items

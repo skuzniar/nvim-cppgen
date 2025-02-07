@@ -215,7 +215,7 @@ local function enum_cast_snippets(node, alias, specifier, throw)
     if P.strict then
         return { primary, cptrfwd, strnfwd }
     end
-    return { utl.flatten(primary, cptrfwd, strnfwd) }
+    return { utl.combine(primary, cptrfwd, strnfwd) }
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -310,11 +310,24 @@ end
 ---------------------------------------------------------------------------------------------------
 local function cast_member_items(node, alias)
     log.trace("enum_cast_member_items:", ast.details(node))
+    if P.strict then
+        return cast_items(
+            G.enum.cast.enum_cast.enabled           and enum_cast_snippets (node, alias, 'template <>', true ) or {},
+            G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippets (node, alias, 'template <>', false) or {},
+            G.enum.cast.value_cast.enabled          and value_cast_snippets(node, alias, 'template <>', true ) or {},
+            G.enum.cast.value_cast_no_throw.enabled and value_cast_snippets(node, alias, 'template <>', false) or {})
+    end
     return cast_items(
-        G.enum.cast.enum_cast.enabled           and enum_cast_snippets (node, alias, 'template <>', true ) or {},
-        G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippets (node, alias, 'template <>', false) or {},
-        G.enum.cast.value_cast.enabled          and value_cast_snippets(node, alias, 'template <>', true ) or {},
-        G.enum.cast.value_cast_no_throw.enabled and value_cast_snippets(node, alias, 'template <>', false) or {})
+        {
+            utl.flatten(
+                G.enum.cast.enum_cast.enabled           and enum_cast_snippets (node, alias, 'template <>', true ) or {},
+                G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippets (node, alias, 'template <>', false) or {})
+        },
+        {
+            utl.flatten(
+                G.enum.cast.value_cast.enabled          and value_cast_snippets(node, alias, 'template <>', true ) or {},
+                G.enum.cast.value_cast_no_throw.enabled and value_cast_snippets(node, alias, 'template <>', false) or {})
+        })
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -322,11 +335,24 @@ end
 ---------------------------------------------------------------------------------------------------
 local function cast_free_items(node, alias)
     log.trace("enum_cast_free_items:", ast.details(node))
+    if P.strict then
+        return cast_items(
+            G.enum.cast.enum_cast.enabled           and enum_cast_snippets (node, alias, 'template <> inline', true ) or {},
+            G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippets (node, alias, 'template <> inline', false) or {},
+            G.enum.cast.value_cast.enabled          and value_cast_snippets(node, alias, 'template <> inline', true ) or {},
+            G.enum.cast.value_cast_no_throw.enabled and value_cast_snippets(node, alias, 'template <> inline', false) or {})
+    end
     return cast_items(
-        G.enum.cast.enum_cast.enabled           and enum_cast_snippets (node, alias, 'template <> inline', true ) or {},
-        G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippets (node, alias, 'template <> inline', false) or {},
-        G.enum.cast.value_cast.enabled          and value_cast_snippets(node, alias, 'template <> inline', true ) or {},
-        G.enum.cast.value_cast_no_throw.enabled and value_cast_snippets(node, alias, 'template <> inline', false) or {})
+        {
+            utl.flatten(
+                G.enum.cast.enum_cast.enabled           and enum_cast_snippets (node, alias, 'template <> inline', true ) or {},
+                G.enum.cast.enum_cast_no_throw.enabled  and enum_cast_snippets (node, alias, 'template <> inline', false) or {})
+        },
+        {
+            utl.flatten(
+                G.enum.cast.value_cast.enabled          and value_cast_snippets(node, alias, 'template <> inline', true ) or {},
+                G.enum.cast.value_cast_no_throw.enabled and value_cast_snippets(node, alias, 'template <> inline', false) or {})
+        })
 end
 
 ---------------------------------------------------------------------------------------------------
