@@ -132,7 +132,8 @@ function M.generate(strict)
                     insertTextMode   = 2,
                     insertTextFormat = cmp.lsp.InsertTextFormat.Snippet,
                     insertText       = table.concat(s.lines, '\n'),
-                    documentation    = table.concat(s.lines, '\n')
+                    documentation    = table.concat(s.lines, '\n'),
+                    lines            = s.lines,
                 })
         end
     end
@@ -145,7 +146,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 --- Return new source
-function M:source()
+function M.source()
     log.trace('source')
     return setmetatable({}, { __index = M })
 end

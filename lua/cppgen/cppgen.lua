@@ -96,4 +96,8 @@ vim.api.nvim_create_user_command('CPPGenInfo', function()
     end
 end, { desc = 'Brief information about cppgen sources' })
 
+vim.api.nvim_create_user_command('CPPGenValidate', function()
+    val.validate()
+end, { desc = 'Show generated old and new code' })
+
 return M
