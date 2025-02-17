@@ -1,6 +1,7 @@
 local log = require('cppgen.log')
 local gen = require('cppgen.generator')
 local val = require('cppgen.validator')
+local nav = require('cppgen.navigator')
 
 ---------------------------------------------------------------------------------------------------
 -- Code generation module. Forwards events to the code completion module
@@ -13,6 +14,7 @@ local M = {}
 function M.setup(opts)
     gen.setup(opts)
     val.setup(opts)
+    nav.setup(opts)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -22,6 +24,7 @@ function M.attached(client, bufnr)
     log.trace("Attached client", client.id, "buffer", bufnr)
 	gen.attached(client, bufnr)
 	val.attached(client, bufnr)
+	nav.attached(client, bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -31,6 +34,7 @@ function M.insert_enter(bufnr)
     log.trace("Entered insert mode buffer:", bufnr)
 	gen.insert_enter(bufnr)
 	val.insert_enter(bufnr)
+	nav.insert_enter(bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -40,6 +44,7 @@ function M.insert_leave(bufnr)
     log.trace("Exited insert mode buffer:", bufnr)
 	gen.insert_leave(bufnr)
 	val.insert_leave(bufnr)
+	nav.insert_leave(bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -49,6 +54,7 @@ function M.after_write(bufnr)
     log.trace("Wrote buffer:", bufnr)
 	gen.after_write(bufnr)
 	val.after_write(bufnr)
+	nav.after_write(bufnr)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -99,5 +105,15 @@ end, { desc = 'Brief information about cppgen sources' })
 vim.api.nvim_create_user_command('CPPGenValidate', function()
     val.validate()
 end, { desc = 'Show generated old and new code' })
+
+vim.api.nvim_create_user_command('CPPGen', function(opts)
+    local sdir = opts.fargs[1] or 'next'
+    local span = sdir == 'next' and nav.get_next_span() or nav.get_prev_span()
+    if span then
+        local row = span.first + 1
+        local _, col = vim.fn.getline(row):find('^%s*')
+        vim.api.nvim_win_set_cursor(0, { row, col })
+    end
+end, { nargs='?', desc = 'Testing....' })
 
 return M

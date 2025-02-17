@@ -385,5 +385,10 @@ function M.validate()
 end
 
 
+--- Return the result records
+function M.results()
+    return L.results
+end
+
 return M
 
