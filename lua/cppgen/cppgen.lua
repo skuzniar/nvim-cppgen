@@ -81,6 +81,18 @@ local function pad(s, len)
     return s .. string.rep(' ', len - string.len(s))
 end
 
+vim.api.nvim_create_user_command('CPPGen', function(opts)
+    local sdir = opts.fargs[1] or 'next'
+    local srec = sdir == 'next' and nav.get_next_record() or nav.get_prev_record()
+    if srec then
+        local row = srec.span.first + 1
+        local _, col = vim.fn.getline(row):find('^%s*')
+        vim.api.nvim_win_set_cursor(0, { row, col })
+
+        nav.preview(srec)
+    end
+end, { nargs=1, desc = 'Navigate generated snippets.' })
+
 vim.api.nvim_create_user_command('CPPGenInfo', function()
     local info = gen.info()
 
@@ -105,15 +117,5 @@ end, { desc = 'Brief information about cppgen sources' })
 vim.api.nvim_create_user_command('CPPGenValidate', function()
     val.validate()
 end, { desc = 'Show generated old and new code' })
-
-vim.api.nvim_create_user_command('CPPGen', function(opts)
-    local sdir = opts.fargs[1] or 'next'
-    local span = sdir == 'next' and nav.get_next_span() or nav.get_prev_span()
-    if span then
-        local row = span.first + 1
-        local _, col = vim.fn.getline(row):find('^%s*')
-        vim.api.nvim_win_set_cursor(0, { row, col })
-    end
-end, { nargs='?', desc = 'Testing....' })
 
 return M

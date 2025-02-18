@@ -13,12 +13,12 @@ local L = {
     group     = "CPPGen",
     lspclient = nil,
 
+    -- We flag code vs generated snippetys as same, different or do not know where it came from
     signs = {
         -- Ctl-V ue646
-        CPPGenSignError = { text = "", texthl = "DiagnosticSignError"   },
-        CPPGenSignWarn  = { text = "", texthl = "DiagnosticSignWarn"    },
-        CPPGenSignInfo  = { text = "", texthl = "DiagnosticSignInfo"    },
-        CPPGenSignOK    = { text = "", texthl = "DiagnosticUnnecessary" },
+        CPPGenSignSame  = { text = "", texthl = "DiagnosticUnnecessary" },
+        CPPGenSignDiff  = { text = "", texthl = "DiagnosticSignWarn"    },
+        CPPGenSignDono  = { text = "", texthl = "DiagnosticSignInfo"    },
     },
     namespace = vim.api.nvim_create_namespace("CPPGen"),
     results   = {},
@@ -136,10 +136,10 @@ local function visit_relevant_nodes(symbols, bufnr, callback)
                     gen.visit(symbols, span.first)
                     local code = vim.api.nvim_buf_get_lines(bufnr, span.first, span.last+1, false)
                     local snip = match(code, gen.generate(true))
-                    local name = snip and (same(code, snip.lines) and 'CPPGenSignOK' or 'CPPGenSignWarn') or 'CPPGenSignInfo'
+                    local name = snip and (same(code, snip.lines) and 'CPPGenSignSame' or 'CPPGenSignDiff') or 'CPPGenSignDono'
                     vim.fn.sign_place(0, L.group, name, bufnr, { lnum = span.first + 1, priority = 10 })
                     if snip then
-                        table.insert(L.results, {snip = snip, code = code, span = span, sign = L.signs[name]})
+                        table.insert(L.results, {name = name, snip = snip, code = code, span = span, sign = L.signs[name]})
                     end
                 end
                 callback(node)
@@ -301,6 +301,23 @@ local function bdiff(diffs)
     return blocks
 end
 
+-- Set the lines of a given buffer to the diff-like annotated snippet
+function M.set_diffs(bufnr, record)
+    local diffs = diff(record.code, record.snip.lines)
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, ddiff(diffs, record.code, record.snip.lines))
+    for _,e in ipairs(bdiff(diffs)) do
+        if e[3] == '+' or e[3] == '-' then
+            local hlgroup = e[3] == '+' and 'diffAdded' or 'diffRemoved'
+            vim.api.nvim_buf_set_extmark(bufnr, L.namespace, e[1], 0, {end_row = e[1]+1, hl_group = hlgroup , hl_eol=true})
+        end
+    end
+end
+
+-- Check if current lines of code and the generated lines of code in a given record are identical
+function M.same(record)
+    return record.name == 'CPPGenSignSame'
+end
+
 -- Generated snippets picker
 local function snippets(opts)
     opts = opts or {}
@@ -331,14 +348,7 @@ local function snippets(opts)
         previewer = viewers.new_buffer_previewer {
             title = 'Current : Generated',
             define_preview = function (self, entry, status)
-                local diffs = diff(entry.value.code, entry.value.snip.lines)
-                vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, ddiff(diffs, entry.value.code, entry.value.snip.lines))
-                for _,e in ipairs(bdiff(diffs)) do
-                    if e[3] == '+' or e[3] == '-' then
-                        local hlgroup = e[3] == '+' and 'diffAdded' or 'diffRemoved'
-                        vim.api.nvim_buf_set_extmark(self.state.bufnr, L.namespace, e[1], 0, {end_row = e[1]+1, hl_group = hlgroup , hl_eol=true})
-                    end
-                end
+                M.set_diffs(self.state.bufnr, entry.value)
             end
         },
         sorter = configs.generic_sorter(opts),
